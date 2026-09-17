@@ -86,33 +86,37 @@ Route::middleware(['auth', 'permission:app.acessar'])
     ->group(function () {
         Route::get('/', InicioController::class)->name('inicio');
         Route::get('/setup', SetupController::class)->name('setup');
-        Route::get('/area', AreaController::class)->name('area');
-        Route::get('/rota', RotaPageController::class)->name('rota');
-        Route::get('/checkin', CheckinController::class)->name('checkin');
+        Route::post('/setup', [SetupController::class, 'store'])->name('setup.store');
 
-        Route::post('/area/prospectar', [AreaController::class, 'prospectar'])
-            ->middleware('permission:prospectos.buscar')
-            ->name('area.prospectar');
+        Route::middleware('setup.diario')->group(function () {
+            Route::get('/area', AreaController::class)->name('area');
+            Route::get('/rota', RotaPageController::class)->name('rota');
+            Route::get('/checkin', CheckinController::class)->name('checkin');
 
-        Route::post('/places/detalhe', PlaceDetalheController::class)
-            ->middleware('permission:prospectos.ver')
-            ->name('places.detalhe');
+            Route::post('/area/prospectar', [AreaController::class, 'prospectar'])
+                ->middleware('permission:prospectos.buscar')
+                ->name('area.prospectar');
 
-        Route::post('/territorio/verificar', [TerritorioController::class, 'verificar'])
-            ->middleware('permission:territorio.verificar')
-            ->name('territorio.verificar');
+            Route::post('/places/detalhe', PlaceDetalheController::class)
+                ->middleware('permission:prospectos.ver')
+                ->name('places.detalhe');
 
-        Route::post('/prospectos/buscar', [ProspectoController::class, 'buscar'])
-            ->middleware('permission:prospectos.buscar')
-            ->name('prospectos.buscar');
+            Route::post('/territorio/verificar', [TerritorioController::class, 'verificar'])
+                ->middleware('permission:territorio.verificar')
+                ->name('territorio.verificar');
 
-        Route::post('/rota/gerar', [RotaController::class, 'gerar'])
-            ->middleware('permission:prospectos.ver')
-            ->name('rota.gerar');
+            Route::post('/prospectos/buscar', [ProspectoController::class, 'buscar'])
+                ->middleware('permission:prospectos.buscar')
+                ->name('prospectos.buscar');
 
-        Route::post('/visitas', [CheckinController::class, 'store'])
-            ->middleware('permission:visitas.criar')
-            ->name('visitas.store');
+            Route::post('/rota/gerar', [RotaController::class, 'gerar'])
+                ->middleware('permission:prospectos.ver')
+                ->name('rota.gerar');
+
+            Route::post('/visitas', [CheckinController::class, 'store'])
+                ->middleware('permission:visitas.criar')
+                ->name('visitas.store');
+        });
     });
 
 require __DIR__.'/auth.php';

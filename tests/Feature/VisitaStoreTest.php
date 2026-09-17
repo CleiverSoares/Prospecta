@@ -9,10 +9,12 @@ use Database\Seeders\PapeisEPermissoesSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Tests\ComSetupDiario;
 use Tests\TestCase;
 
 class VisitaStoreTest extends TestCase
 {
+    use ComSetupDiario;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -33,6 +35,7 @@ class VisitaStoreTest extends TestCase
         ]);
 
         $this->actingAs($vendedor)
+            ->withSession($this->sessionSetup())
             ->post(route('app.visitas.store'), [
                 'prospecto_id' => $prospecto->id,
                 'status' => StatusVisita::Feita->value,
@@ -62,6 +65,7 @@ class VisitaStoreTest extends TestCase
         ]);
 
         $this->actingAs($vendedor)
+            ->withSession($this->sessionSetup())
             ->post(route('app.visitas.store'), [
                 'prospecto_id' => $prospecto->id,
                 'status' => StatusVisita::Feita->value,

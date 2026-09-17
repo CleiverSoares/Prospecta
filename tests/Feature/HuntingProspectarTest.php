@@ -7,10 +7,12 @@ use App\Models\User;
 use Database\Seeders\PapeisEPermissoesSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Tests\ComSetupDiario;
 use Tests\TestCase;
 
 class HuntingProspectarTest extends TestCase
 {
+    use ComSetupDiario;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -65,6 +67,7 @@ class HuntingProspectarTest extends TestCase
         $vendedor->assignRole('vendedor');
 
         $resposta = $this->actingAs($vendedor)
+            ->withSession($this->sessionSetup())
             ->postJson(route('app.area.prospectar'), [
                 'bairro' => 'Copacabana',
                 'cidade' => 'Rio de Janeiro',
@@ -108,6 +111,7 @@ class HuntingProspectarTest extends TestCase
         ]);
 
         $this->actingAs($vendedor)
+            ->withSession($this->sessionSetup())
             ->postJson(route('app.area.prospectar'), [
                 'cep' => '27200-000',
                 'bairro' => 'Centro',
