@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\PainelController;
 use App\Http\Controllers\Admin\PapelController;
+use App\Http\Controllers\Admin\UnidadeController;
 use App\Http\Controllers\App\InicioController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -25,6 +26,22 @@ Route::middleware(['auth', 'permission:admin.acessar'])
     ->name('admin.')
     ->group(function () {
         Route::get('/', PainelController::class)->name('painel');
+
+        Route::middleware('permission:unidades.ver')->group(function () {
+            Route::get('/unidades', [UnidadeController::class, 'index'])->name('unidades.index');
+            Route::get('/unidades/criar', [UnidadeController::class, 'create'])
+                ->middleware('permission:unidades.criar')
+                ->name('unidades.create');
+            Route::post('/unidades', [UnidadeController::class, 'store'])
+                ->middleware('permission:unidades.criar')
+                ->name('unidades.store');
+            Route::get('/unidades/{unidade}/editar', [UnidadeController::class, 'edit'])
+                ->middleware('permission:unidades.editar')
+                ->name('unidades.edit');
+            Route::put('/unidades/{unidade}', [UnidadeController::class, 'update'])
+                ->middleware('permission:unidades.editar')
+                ->name('unidades.update');
+        });
 
         Route::middleware('permission:papeis.gerenciar')->group(function () {
             Route::get('/papeis', [PapelController::class, 'index'])->name('papeis.index');
