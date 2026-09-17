@@ -1,0 +1,28 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('prospectos', function (Blueprint $table) {
+            $table->id();
+            $table->string('cnpj', 14)->unique();
+            $table->string('razao_social');
+            $table->string('cep', 8)->nullable()->index();
+            $table->decimal('lat', 10, 7)->nullable();
+            $table->decimal('lng', 10, 7)->nullable();
+            $table->string('status_receita', 20)->nullable();
+            $table->boolean('is_cliente')->default(false);
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('prospectos');
+    }
+};
