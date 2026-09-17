@@ -5,7 +5,7 @@
 
     <x-auth-session-status class="mb-4 text-sm text-emerald-400" :status="session('status')" />
 
-    <form method="POST" action="{{ route('login') }}" class="space-y-5">
+    <form method="POST" action="{{ route('login') }}" class="space-y-4">
         @csrf
 
         <x-auth.campo
@@ -29,14 +29,14 @@
         >
             <x-slot:acao>
                 @if (Route::has('password.request'))
-                    <a href="{{ route('password.request') }}" class="text-sm font-semibold text-brand hover:underline">
+                    <a href="{{ route('password.request') }}" class="text-sm font-medium text-brand hover:underline">
                         Esqueci a senha
                     </a>
                 @endif
             </x-slot:acao>
         </x-auth.campo>
 
-        <label class="inline-flex items-center gap-2.5 text-sm text-paper/75">
+        <label class="flex items-center gap-2.5 pt-1 text-sm text-paper/75">
             <input
                 id="remember_me"
                 type="checkbox"
@@ -46,11 +46,13 @@
             <span>Manter conectado</span>
         </label>
 
-        <x-auth.botao-primario>Entrar</x-auth.botao-primario>
+        <div class="pt-2">
+            <x-auth.botao-primario>Entrar</x-auth.botao-primario>
+        </div>
     </form>
 
     @if (Route::has('register'))
-        <p class="mt-6 text-sm text-paper/55">
+        <p class="mt-6 text-center text-sm text-paper/55">
             Ainda sem acesso?
             <a href="{{ route('register') }}" class="font-semibold text-brand hover:underline">Criar conta</a>
         </p>

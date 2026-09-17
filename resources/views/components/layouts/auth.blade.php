@@ -16,16 +16,11 @@
 <body class="min-h-dvh overflow-x-hidden bg-ink font-sans text-paper">
     <x-auth.atmosfera />
 
-    <div class="relative z-10 mx-auto grid min-h-dvh w-full max-w-6xl lg:grid-cols-2">
-        <section class="auth-rise flex flex-col justify-center px-6 py-10 sm:px-10 lg:px-14">
+    <main class="relative z-10 flex min-h-dvh items-center justify-center px-5 py-10 sm:px-8">
+        <div class="auth-rise w-full max-w-[420px]">
             {{ $marca ?? '' }}
-        </section>
-
-        <section class="auth-rise-delay flex flex-col justify-center border-t border-white/10 bg-black/25 px-6 py-10 backdrop-blur-sm sm:px-10 lg:border-l lg:border-t-0 lg:px-14 lg:bg-black/20">
-            <div class="mx-auto w-full max-w-md">
-                {{ $slot }}
-            </div>
-        </section>
-    </div>
+            {{ $slot }}
+        </div>
+    </main>
 </body>
 </html>

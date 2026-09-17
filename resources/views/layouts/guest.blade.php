@@ -12,13 +12,13 @@
 <body class="min-h-dvh overflow-x-hidden bg-ink font-sans text-paper">
     <x-auth.atmosfera />
 
-    <div class="relative z-10 mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-10">
-        <a href="{{ url('/') }}" class="mb-8 font-display text-4xl font-extrabold tracking-tight text-paper no-underline">
-            Prospecta
-        </a>
-        <div class="w-full">
+    <main class="relative z-10 flex min-h-dvh items-center justify-center px-5 py-10">
+        <div class="w-full max-w-[420px]">
+            <a href="{{ url('/') }}" class="mb-8 block font-display text-[2.5rem] font-extrabold leading-none tracking-tight text-paper no-underline">
+                Prospecta
+            </a>
             {{ $slot }}
         </div>
-    </div>
+    </main>
 </body>
 </html>

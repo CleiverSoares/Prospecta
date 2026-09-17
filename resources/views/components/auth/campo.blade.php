@@ -15,7 +15,7 @@
 
 <div {{ $attributes->merge(['class' => 'space-y-2']) }}>
     <div class="flex items-baseline justify-between gap-3">
-        <label for="{{ $nome }}" class="text-xs font-semibold uppercase tracking-[0.08em] text-paper/70">
+        <label for="{{ $nome }}" class="text-sm font-medium text-paper/80">
             {{ $rotulo }}
         </label>
         {{ $acao ?? '' }}
@@ -30,7 +30,7 @@
         @if ($obrigatorio) required @endif
         @if ($autocomplete) autocomplete="{{ $autocomplete }}" @endif
         @if ($autofocus) autofocus @endif
-        class="w-full rounded-xl border border-white/15 bg-ink/60 px-4 py-3.5 text-base text-paper outline-none transition placeholder:text-paper/35 focus:border-brand focus:bg-ink/80 focus:ring-2 focus:ring-brand/30"
+        class="h-12 w-full rounded-xl border border-white/15 bg-white/5 px-4 text-base text-paper outline-none transition placeholder:text-paper/35 focus:border-brand focus:bg-white/[0.07] focus:ring-2 focus:ring-brand/25"
     >
 
     @if ($erros)
