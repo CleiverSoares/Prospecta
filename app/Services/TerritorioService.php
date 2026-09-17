@@ -2,12 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\Unidade;
 use App\Models\User;
 use App\Repositories\UnidadeRepository;
 
-/**
- * Regras de território (minha / livre / bloqueada) — implementação na fase 4.
- */
 class TerritorioService
 {
     public function __construct(
@@ -15,15 +13,56 @@ class TerritorioService
     ) {}
 
     /**
-     * @return array{permitido: bool, motivo: string, unidade_id: int|null}
+     * @return array{
+     *     permitido: bool,
+     *     motivo: string,
+     *     unidade_id: int|null,
+     *     unidade_nome: string|null
+     * }
      */
     public function verificarCep(User $usuario, string $cep): array
     {
-        // Stub 1.6 — usar $this->unidadeRepository na fase 4.
+        $cepLimpo = preg_replace('/\D+/', '', $cep) ?? '';
+
+        if (strlen($cepLimpo) < 8) {
+            $cepLimpo = str_pad($cepLimpo, 8, '0');
+        } else {
+            $cepLimpo = substr($cepLimpo, 0, 8);
+        }
+
+        $unidades = $this->unidadeRepository->buscarQueCobremCep($cepLimpo);
+
+        if ($unidades->isEmpty()) {
+            return [
+                'permitido' => true,
+                'motivo' => 'area_livre',
+                'unidade_id' => null,
+                'unidade_nome' => null,
+            ];
+        }
+
+        if ($usuario->unidade_id !== null) {
+            /** @var Unidade|null $minha */
+            $minha = $unidades->firstWhere('id', $usuario->unidade_id);
+
+            if ($minha !== null) {
+                return [
+                    'permitido' => true,
+                    'motivo' => 'minha_unidade',
+                    'unidade_id' => $minha->id,
+                    'unidade_nome' => $minha->nome,
+                ];
+            }
+        }
+
+        /** @var Unidade $conflito */
+        $conflito = $unidades->first();
+
         return [
             'permitido' => false,
-            'motivo' => 'nao_implementado',
-            'unidade_id' => null,
+            'motivo' => 'bloqueado',
+            'unidade_id' => $conflito->id,
+            'unidade_nome' => $conflito->nome,
         ];
     }
 }
