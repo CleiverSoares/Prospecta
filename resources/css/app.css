@@ -81,12 +81,18 @@
 .auth-route {
     position: absolute;
     left: 8%;
-    right: 18%;
+    right: 45%;
     top: 42%;
     height: 2px;
     background: linear-gradient(90deg, transparent, var(--auth-route), transparent);
     opacity: 0.55;
     animation: auth-route-scan 5.5s ease-in-out infinite;
+}
+
+@media (max-width: 959px) {
+    .auth-route {
+        right: 18%;
+    }
 }
 
 .auth-route::before,
@@ -115,20 +121,22 @@
 .auth-stage {
     position: relative;
     z-index: 1;
+    box-sizing: border-box;
+    width: min(100%, 1180px);
     min-height: 100dvh;
+    margin: 0 auto;
     display: grid;
     align-content: center;
-    gap: clamp(1.25rem, 3vw, 2.5rem);
-    padding: clamp(1.25rem, 4vw, 3rem);
-    max-width: 1120px;
-    margin: 0 auto;
+    gap: 1.75rem;
+    padding: clamp(1.5rem, 4vw, 3.5rem);
 }
 
-@media (min-width: 900px) {
+@media (min-width: 960px) {
     .auth-stage {
-        grid-template-columns: 1.15fr 0.85fr;
+        grid-template-columns: minmax(0, 1fr) 26.5rem;
         align-items: center;
-        gap: 4rem;
+        gap: clamp(3rem, 7vw, 5.5rem);
+        padding-inline: clamp(2rem, 6vw, 4rem);
     }
 }
 
@@ -136,35 +144,35 @@
     animation: auth-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.auth-kicker {
-    margin: 0 0 0.55rem;
-    font-size: 0.75rem;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: rgba(232, 241, 245, 0.55);
-}
-
 .auth-logo {
     margin: 0;
     font-family: Syne, ui-sans-serif, system-ui, sans-serif;
     font-weight: 800;
-    font-size: clamp(2.6rem, 9vw, 6.5rem);
-    line-height: 0.92;
+    font-size: clamp(2.75rem, 8vw, 5.25rem);
+    line-height: 0.94;
     letter-spacing: -0.04em;
     color: var(--auth-paper);
     text-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
 }
 
 .auth-tagline {
-    margin: 0.85rem 0 0;
-    max-width: 22ch;
-    font-size: clamp(0.98rem, 2.2vw, 1.35rem);
+    margin: 0.9rem 0 0;
+    max-width: 18ch;
+    font-size: clamp(1.05rem, 2vw, 1.3rem);
     line-height: 1.35;
     color: var(--auth-mist);
 }
 
 .auth-panel {
+    width: 100%;
+    max-width: 26.5rem;
     animation: auth-rise 900ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
+}
+
+@media (min-width: 960px) {
+    .auth-panel {
+        max-width: none;
+    }
 }
 
 .auth-form {
