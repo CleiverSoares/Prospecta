@@ -25,4 +25,8 @@
     body {
         @apply bg-[color:var(--ink)] font-sans text-[color:var(--paper)];
     }
+
+    [x-cloak] {
+        display: none !important;
+    }
 }

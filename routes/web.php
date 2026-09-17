@@ -33,6 +33,9 @@ Route::middleware(['auth', 'permission:admin.acessar'])
             Route::post('/unidades', [UnidadeController::class, 'store'])
                 ->middleware('permission:unidades.criar')
                 ->name('unidades.store');
+            Route::post('/unidades/estimar-ceps', [UnidadeController::class, 'estimarCeps'])
+                ->middleware('permission:unidades.criar|unidades.editar')
+                ->name('unidades.estimar-ceps');
             Route::get('/unidades/{unidade}/editar', [UnidadeController::class, 'edit'])
                 ->middleware('permission:unidades.editar')
                 ->name('unidades.edit');

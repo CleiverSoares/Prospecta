@@ -22,6 +22,23 @@ class SalvarUnidadeRequest extends FormRequest
             && ($this->user()?->can('update', $unidade) ?? false);
     }
 
+    protected function prepareForValidation(): void
+    {
+        $poligono = $this->input('poligono_geojson');
+
+        if (is_string($poligono) && $poligono !== '') {
+            $decoded = json_decode($poligono, true);
+
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $this->merge(['poligono_geojson' => $decoded]);
+            }
+        }
+
+        if ($this->input('poligono_geojson') === '' || $this->input('poligono_geojson') === []) {
+            $this->merge(['poligono_geojson' => null]);
+        }
+    }
+
     public function rules(): array
     {
         return [
@@ -30,6 +47,7 @@ class SalvarUnidadeRequest extends FormRequest
             'cep_inicio' => ['nullable', 'string', 'max:9', 'regex:/^\d{5}-?\d{3}$/'],
             'cep_fim' => ['nullable', 'string', 'max:9', 'regex:/^\d{5}-?\d{3}$/', 'required_with:cep_inicio'],
             'poligono_geojson' => ['nullable', 'array'],
+            'poligono_geojson.type' => ['required_with:poligono_geojson', 'string'],
         ];
     }
 

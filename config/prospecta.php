@@ -11,6 +11,8 @@ return [
     'mapbox' => [
         'token' => env('MAPBOX_ACCESS_TOKEN'),
         'style_url' => env('MAPBOX_STYLE_URL', 'mapbox://styles/mapbox/streets-v12'),
+        'token_front' => env('VITE_MAPBOX_ACCESS_TOKEN'),
+        'style_url_front' => env('VITE_MAPBOX_STYLE_URL'),
     ],
 
     'google' => [

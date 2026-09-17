@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\TipoUnidade;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\EstimarCepsPoligonoRequest;
 use App\Http\Requests\Admin\SalvarUnidadeRequest;
 use App\Models\Unidade;
+use App\Services\PoligonoCepService;
 use App\Services\UnidadeService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -14,6 +17,7 @@ class UnidadeController extends Controller
 {
     public function __construct(
         private readonly UnidadeService $unidadeService,
+        private readonly PoligonoCepService $poligonoCepService,
     ) {}
 
     public function index(): View
@@ -62,5 +66,12 @@ class UnidadeController extends Controller
         return redirect()
             ->route('admin.unidades.edit', $unidade)
             ->with('status', 'Unidade atualizada.');
+    }
+
+    public function estimarCeps(EstimarCepsPoligonoRequest $request): JsonResponse
+    {
+        $faixa = $this->poligonoCepService->estimarFaixa($request->validated('poligono_geojson'));
+
+        return response()->json($faixa);
     }
 }
