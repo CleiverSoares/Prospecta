@@ -1,23 +1,19 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Admin — Prospecta</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-<body class="min-h-screen bg-slate-100 text-slate-900 antialiased">
-    <main class="mx-auto max-w-5xl px-4 py-10">
-        <h1 class="text-2xl font-semibold tracking-tight">Painel admin</h1>
-        <p class="mt-2 text-slate-600">Área desktop do Prospecta.</p>
-        <nav class="mt-8 flex flex-wrap gap-4 text-sm font-medium">
-            @can('unidades.ver')
-                <a href="{{ route('admin.unidades.index') }}" class="underline">Unidades</a>
-            @endcan
-            @can('papeis.gerenciar')
-                <a href="{{ route('admin.papeis.index') }}" class="underline">Papéis</a>
-            @endcan
-        </nav>
-    </main>
-</body>
-</html>
+<x-layouts.admin titulo="Painel">
+    <x-slot:subtitulo>Área desktop do Prospecta</x-slot:subtitulo>
+
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        @can('unidades.ver')
+            <a href="{{ route('admin.unidades.index') }}" class="group block rounded-2xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-200/40 transition hover:border-brand/40 hover:shadow-md">
+                <p class="font-display text-lg font-bold text-slate-900 group-hover:text-ink">Unidades</p>
+                <p class="mt-2 text-sm text-slate-500">Matriz, filial e representação.</p>
+            </a>
+        @endcan
+
+        @can('papeis.gerenciar')
+            <a href="{{ route('admin.papeis.index') }}" class="group block rounded-2xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-200/40 transition hover:border-brand/40 hover:shadow-md">
+                <p class="font-display text-lg font-bold text-slate-900 group-hover:text-ink">Papéis</p>
+                <p class="mt-2 text-sm text-slate-500">Roles Spatie e permissões.</p>
+            </a>
+        @endcan
+    </div>
+</x-layouts.admin>

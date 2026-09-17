@@ -53,4 +53,31 @@ class AdminUnidadesCrudTest extends TestCase
             ->get(route('admin.unidades.index'))
             ->assertForbidden();
     }
+
+    public function test_validacao_rejeita_unidade_sem_nome(): void
+    {
+        $adm = User::factory()->create();
+        $adm->assignRole('adm');
+
+        $this->actingAs($adm)
+            ->from(route('admin.unidades.create'))
+            ->post(route('admin.unidades.store'), [
+                'nome' => '',
+                'tipo' => TipoUnidade::Filial->value,
+            ])
+            ->assertRedirect(route('admin.unidades.create'))
+            ->assertSessionHasErrors(['nome']);
+    }
+
+    public function test_layout_admin_aparece_na_lista(): void
+    {
+        $adm = User::factory()->create();
+        $adm->assignRole('adm');
+
+        $this->actingAs($adm)
+            ->get(route('admin.unidades.index'))
+            ->assertOk()
+            ->assertSee('Prospecta', false)
+            ->assertSee('Nova unidade', false);
+    }
 }

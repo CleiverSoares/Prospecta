@@ -18,6 +18,8 @@ class UnidadeController extends Controller
 
     public function index(): View
     {
+        $this->authorize('viewAny', Unidade::class);
+
         return view('admin.unidades.index', [
             'unidades' => $this->unidadeService->listar(),
         ]);
@@ -25,6 +27,8 @@ class UnidadeController extends Controller
 
     public function create(): View
     {
+        $this->authorize('create', Unidade::class);
+
         return view('admin.unidades.create', [
             'tipos' => TipoUnidade::cases(),
         ]);
@@ -32,6 +36,7 @@ class UnidadeController extends Controller
 
     public function store(SalvarUnidadeRequest $request): RedirectResponse
     {
+        $this->authorize('create', Unidade::class);
         $unidade = $this->unidadeService->criar($request->validated());
 
         return redirect()
@@ -41,6 +46,8 @@ class UnidadeController extends Controller
 
     public function edit(Unidade $unidade): View
     {
+        $this->authorize('update', $unidade);
+
         return view('admin.unidades.edit', [
             'unidade' => $unidade,
             'tipos' => TipoUnidade::cases(),
@@ -49,6 +56,7 @@ class UnidadeController extends Controller
 
     public function update(SalvarUnidadeRequest $request, Unidade $unidade): RedirectResponse
     {
+        $this->authorize('update', $unidade);
         $this->unidadeService->atualizar($unidade, $request->validated());
 
         return redirect()
