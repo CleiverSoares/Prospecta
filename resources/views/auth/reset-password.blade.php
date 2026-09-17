@@ -1,39 +1,43 @@
-<x-guest-layout>
-    <form method="POST" action="{{ route('password.store') }}">
-        @csrf
+<x-layouts.auth titulo="Nova senha">
+    <x-slot:marca>
+        <x-auth.marca tagline="Defina uma nova senha para acessar o Prospecta." />
+    </x-slot:marca>
 
-        <!-- Password Reset Token -->
+    <form method="POST" action="{{ route('password.store') }}" class="space-y-4">
+        @csrf
         <input type="hidden" name="token" value="{{ $request->route('token') }}">
 
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email', $request->email)" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
-        </div>
+        <x-auth.campo
+            rotulo="E-mail"
+            nome="email"
+            tipo="email"
+            :valor="old('email', $request->email)"
+            placeholder="voce@empresa.com"
+            obrigatorio
+            autocomplete="username"
+            autofocus
+        />
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-            <x-text-input id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="new-password" />
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
+        <x-auth.campo
+            rotulo="Nova senha"
+            nome="password"
+            tipo="password"
+            placeholder="••••••••"
+            obrigatorio
+            autocomplete="new-password"
+        />
 
-        <!-- Confirm Password -->
-        <div class="mt-4">
-            <x-input-label for="password_confirmation" :value="__('Confirm Password')" />
+        <x-auth.campo
+            rotulo="Confirmar senha"
+            nome="password_confirmation"
+            tipo="password"
+            placeholder="••••••••"
+            obrigatorio
+            autocomplete="new-password"
+        />
 
-            <x-text-input id="password_confirmation" class="block mt-1 w-full"
-                                type="password"
-                                name="password_confirmation" required autocomplete="new-password" />
-
-            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
-        </div>
-
-        <div class="flex items-center justify-end mt-4">
-            <x-primary-button>
-                {{ __('Reset Password') }}
-            </x-primary-button>
+        <div class="pt-2">
+            <x-auth.botao-primario>Salvar senha</x-auth.botao-primario>
         </div>
     </form>
-</x-guest-layout>
+</x-layouts.auth>

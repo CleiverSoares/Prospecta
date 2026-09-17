@@ -6,9 +6,9 @@ use Tests\TestCase;
 
 class FumacaAplicacaoTest extends TestCase
 {
-    public function test_pagina_inicial_responde_com_sucesso(): void
+    public function test_pagina_inicial_redireciona_para_login(): void
     {
-        $this->get('/')->assertOk();
+        $this->get('/')->assertRedirect(route('login'));
     }
 
     public function test_config_prospecta_esta_carregada(): void

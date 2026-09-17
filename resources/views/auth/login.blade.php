@@ -28,11 +28,9 @@
             autocomplete="current-password"
         >
             <x-slot:acao>
-                @if (Route::has('password.request'))
-                    <a href="{{ route('password.request') }}" class="text-sm font-medium text-brand hover:underline">
-                        Esqueci a senha
-                    </a>
-                @endif
+                <a href="{{ route('password.request') }}" class="text-sm font-medium text-brand hover:underline">
+                    Esqueci a senha
+                </a>
             </x-slot:acao>
         </x-auth.campo>
 
@@ -50,11 +48,4 @@
             <x-auth.botao-primario>Entrar</x-auth.botao-primario>
         </div>
     </form>
-
-    @if (Route::has('register'))
-        <p class="mt-6 text-center text-sm text-paper/55">
-            Ainda sem acesso?
-            <a href="{{ route('register') }}" class="font-semibold text-brand hover:underline">Criar conta</a>
-        </p>
-    @endif
 </x-layouts.auth>

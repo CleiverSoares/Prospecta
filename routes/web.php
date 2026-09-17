@@ -4,21 +4,19 @@ use App\Http\Controllers\Admin\PainelController;
 use App\Http\Controllers\Admin\PapelController;
 use App\Http\Controllers\Admin\UnidadeController;
 use App\Http\Controllers\App\InicioController;
-use App\Http\Controllers\ProfileController;
+use App\Services\RedirecionamentoAuthService;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
-});
+    if (auth()->check()) {
+        $destino = app(RedirecionamentoAuthService::class)->destinoAposLogin(auth()->user());
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+        return $destino
+            ? redirect($destino)
+            : redirect()->route('login');
+    }
 
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    return redirect()->route('login');
 });
 
 Route::middleware(['auth', 'permission:admin.acessar'])

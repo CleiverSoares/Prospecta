@@ -16,7 +16,7 @@ class PasswordResetTest extends TestCase
     {
         $response = $this->get('/forgot-password');
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)->assertSee('Prospecta');
     }
 
     public function test_reset_password_link_can_be_requested(): void
