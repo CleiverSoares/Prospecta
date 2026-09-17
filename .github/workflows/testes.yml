@@ -21,33 +21,21 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: '8.3'
           extensions: mbstring, sqlite, pdo_sqlite
           coverage: none
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
 
       - name: Prepare env
         run: |
           cp .env.example .env
           mkdir -p database
           touch database/database.sqlite
-          php -r "file_exists('.env') || copy('.env.example', '.env');"
 
       - name: Install PHP deps
         run: composer install --prefer-dist --no-interaction --no-progress
 
       - name: Generate app key
-        run: php artisan key:generate
-
-      - name: Install JS deps and build
-        run: |
-          npm ci --ignore-scripts=false
-          npm run build
+        run: php artisan key:generate --force
 
       - name: Run tests
         run: php artisan test
