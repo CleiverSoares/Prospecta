@@ -29,6 +29,11 @@ class UnidadeRepository
         return $unidade->fresh();
     }
 
+    public function excluir(Unidade $unidade): bool
+    {
+        return (bool) $unidade->delete();
+    }
+
     /**
      * @return Collection<int, Unidade>
      */
