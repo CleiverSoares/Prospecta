@@ -25,19 +25,8 @@ jobs:
           extensions: mbstring, sqlite, pdo_sqlite
           coverage: none
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-
-      - name: Instalar dependências PHP
+      - name: Instalar dependências
         run: composer install --prefer-dist --no-interaction --no-progress
-
-      - name: Instalar dependências JS e build
-        run: |
-          npm ci
-          npm run build
 
       - name: Preparar ambiente
         run: |
