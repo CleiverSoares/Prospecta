@@ -19,9 +19,18 @@ class RotaController extends Controller
     {
         $ids = $request->validated('prospecto_ids');
         $prospectos = $this->prospectoRepository->buscarPorIds($ids);
+
+        $origem = null;
+        if ($request->filled('origem_lat') && $request->filled('origem_lng')) {
+            $origem = [
+                'lat' => (float) $request->validated('origem_lat'),
+                'lng' => (float) $request->validated('origem_lng'),
+            ];
+        }
+
         $rota = $this->rotaService->gerar(
             $prospectos,
-            null,
+            $origem,
             $request->validated('limite'),
             [
                 'segmento' => $request->validated('segmento'),

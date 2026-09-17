@@ -521,6 +521,13 @@ export function registrarFluxoCampo(Alpine) {
             this.infoWindow?.close();
         },
 
+        horarioCurto(iso) {
+            if (!iso) return '';
+            const d = new Date(iso);
+            if (Number.isNaN(d.getTime())) return '';
+            return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        },
+
         async carregarDetalhe(item) {
             const placeId = item.google_place_id || item.place_id;
             if (!placeId || !this.detalheUrl) return;
@@ -616,6 +623,8 @@ export function registrarFluxoCampo(Alpine) {
                         segmento: setup.segmento,
                         horas: setup.horas,
                         mix_prospeccao: setup.mixProspeccao,
+                        origem_lat: this.gps?.lat ?? null,
+                        origem_lng: this.gps?.lng ?? null,
                     }),
                 });
                 const dados = await resposta.json();

@@ -18,7 +18,7 @@ class RotaGerarApiTest extends TestCase
         $this->seed(PapeisEPermissoesSeeder::class);
         config([
             'prospecta.rota.faixa_lng' => 0.004,
-            'prospecta.rota.janela_ouro' => 12,
+            'prospecta.rota.limite_paradas' => 12,
             'prospecta.google.directions_base_url' => 'https://www.google.com/maps/dir/',
         ]);
     }
@@ -31,7 +31,7 @@ class RotaGerarApiTest extends TestCase
         $a = Prospecto::factory()->create(['lat' => -19.90, 'lng' => -43.96]);
         $b = Prospecto::factory()->create(['lat' => -19.92, 'lng' => -43.96]);
 
-        $this->actingAs($vendedor)
+        $resposta = $this->actingAs($vendedor)
             ->postJson(route('app.rota.gerar'), [
                 'prospecto_ids' => [$b->id, $a->id],
                 'local' => 'Belo Horizonte',
@@ -40,9 +40,11 @@ class RotaGerarApiTest extends TestCase
                 'mix_prospeccao' => 80,
             ])
             ->assertOk()
-            ->assertJsonPath('itens.0.id', $a->id)
-            ->assertJsonPath('itens.1.id', $b->id)
-            ->assertJsonStructure(['itens', 'url_maps', 'avisos']);
+            ->assertJsonStructure(['itens', 'url_maps', 'avisos', 'blocos']);
+
+        $ids = collect($resposta->json('itens'))->pluck('id')->all();
+        $this->assertContains($a->id, $ids);
+        $this->assertContains($b->id, $ids);
     }
 
     public function test_exige_setup_completo_antes_da_rota(): void

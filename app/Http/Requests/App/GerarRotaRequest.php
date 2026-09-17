@@ -24,6 +24,8 @@ class GerarRotaRequest extends FormRequest
             'segmento' => ['required', 'string', 'max:40'],
             'horas' => ['required', 'string', 'max:40'],
             'mix_prospeccao' => ['required', 'numeric', 'min:0', 'max:100'],
+            'origem_lat' => ['sometimes', 'nullable', 'numeric', 'between:-90,90'],
+            'origem_lng' => ['sometimes', 'nullable', 'numeric', 'between:-180,180'],
         ];
     }
 

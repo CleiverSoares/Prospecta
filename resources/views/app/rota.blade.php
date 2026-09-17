@@ -92,6 +92,7 @@
                             </div>
                             <div class="w-[9.5rem] space-y-0.5 p-2.5">
                                 <p class="truncate text-sm font-semibold text-ink" x-text="item.razao_social"></p>
+                                <p class="truncate text-[11px] font-medium text-brand" x-show="item.horario_estimado" x-text="horarioCurto(item.horario_estimado) + (item.bloco ? ' · ' + item.bloco : '')"></p>
                                 <p class="truncate text-[11px] text-ink-soft" x-text="item.endereco || item.guia_bolso"></p>
                             </div>
                         </button>
@@ -125,6 +126,7 @@
                             </div>
                             <div class="min-w-0">
                                 <p class="truncate text-sm font-semibold text-ink" x-text="item.razao_social"></p>
+                                <p class="mt-0.5 truncate text-xs font-medium text-brand" x-show="item.horario_estimado" x-text="horarioCurto(item.horario_estimado) + (item.bloco ? ' · ' + item.bloco : '')"></p>
                                 <p class="mt-0.5 truncate text-xs text-ink-faint" x-text="item.cnpj"></p>
                                 <p class="mt-0.5 truncate text-xs text-ink-soft" x-text="item.endereco || item.guia_bolso"></p>
                                 <p class="mt-1 text-xs text-brand" x-show="item.telefone" x-text="item.telefone" x-cloak></p>

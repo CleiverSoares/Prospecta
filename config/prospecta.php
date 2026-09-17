@@ -30,7 +30,16 @@ return [
 
     'rota' => [
         'faixa_lng' => (float) env('ROTA_FAIXA_LNG', 0.004),
+        // Limite de paradas (legado: ROTA_JANELA_OURO ainda funciona como alias)
+        'limite_paradas' => (int) env('ROTA_LIMITE_PARADAS', env('ROTA_JANELA_OURO', 12)),
         'janela_ouro' => (int) env('ROTA_JANELA_OURO', 12),
+        'predio_metros' => (float) env('ROTA_PREDIO_METROS', 50),
+        'raio_prospeccao_km' => (float) env('ROTA_RAIO_PROSPECCAO_KM', 2),
+        'raio_pos_venda_km' => (float) env('ROTA_RAIO_POS_VENDA_KM', 15),
+        'duracao_visita_min' => (int) env('ROTA_DURACAO_VISITA_MIN', 30),
+        'velocidade_kmh' => (float) env('ROTA_VELOCIDADE_KMH', 20),
+        'almoco_inicio' => env('ROTA_ALMOCO_INICIO', '12:00'),
+        'almoco_duracao_min' => (int) env('ROTA_ALMOCO_DURACAO_MIN', 60),
     ],
 
     'receita_ws' => [
