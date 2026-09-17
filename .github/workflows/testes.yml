@@ -31,18 +31,23 @@ jobs:
           node-version: '22'
           cache: npm
 
-      - name: Instalar dependências PHP
-        run: composer install --prefer-dist --no-interaction --no-progress
-
-      - name: Instalar dependências JS e build
-        run: |
-          npm ci
-          npm run build
-
-      - name: Preparar ambiente
+      - name: Prepare env
         run: |
           cp .env.example .env
-          php artisan key:generate
+          mkdir -p database
+          touch database/database.sqlite
+          php -r "file_exists('.env') || copy('.env.example', '.env');"
 
-      - name: Rodar testes
+      - name: Install PHP deps
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Generate app key
+        run: php artisan key:generate
+
+      - name: Install JS deps and build
+        run: |
+          npm ci --ignore-scripts=false
+          npm run build
+
+      - name: Run tests
         run: php artisan test
