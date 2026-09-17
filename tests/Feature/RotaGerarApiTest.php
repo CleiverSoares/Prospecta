@@ -6,10 +6,12 @@ use App\Models\Prospecto;
 use App\Models\User;
 use Database\Seeders\PapeisEPermissoesSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\ComSetupDiario;
 use Tests\TestCase;
 
 class RotaGerarApiTest extends TestCase
 {
+    use ComSetupDiario;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -32,6 +34,7 @@ class RotaGerarApiTest extends TestCase
         $b = Prospecto::factory()->create(['lat' => -19.92, 'lng' => -43.96]);
 
         $resposta = $this->actingAs($vendedor)
+            ->withSession($this->sessionSetup())
             ->postJson(route('app.rota.gerar'), [
                 'prospecto_ids' => [$b->id, $a->id],
                 'local' => 'Belo Horizonte',
@@ -59,6 +62,21 @@ class RotaGerarApiTest extends TestCase
                 'prospecto_ids' => [$p->id],
             ])
             ->assertStatus(422)
+            ->assertJsonPath('message', 'Complete o Setup do dia antes de continuar.');
+    }
+
+    public function test_exige_campos_setup_no_payload_mesmo_com_sessao(): void
+    {
+        $vendedor = User::factory()->create();
+        $vendedor->assignRole('vendedor');
+        $p = Prospecto::factory()->create(['lat' => -19.9, 'lng' => -43.9]);
+
+        $this->actingAs($vendedor)
+            ->withSession($this->sessionSetup())
+            ->postJson(route('app.rota.gerar'), [
+                'prospecto_ids' => [$p->id],
+            ])
+            ->assertStatus(422)
             ->assertJsonValidationErrors(['local', 'segmento', 'horas', 'mix_prospeccao']);
     }
 
@@ -68,6 +86,7 @@ class RotaGerarApiTest extends TestCase
         $vendedor->assignRole('vendedor');
 
         $this->actingAs($vendedor)
+            ->withSession($this->sessionSetup())
             ->postJson(route('app.rota.gerar'), [
                 'prospecto_ids' => [],
                 'local' => 'BH',

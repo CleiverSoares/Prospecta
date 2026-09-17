@@ -1,21 +1,34 @@
+@php
+    $setupInicial = $setup ?? [];
+@endphp
+
 <x-layouts.app-pwa titulo="Setup do dia" passo="setup">
-    <x-slot:subtitulo>Obrigatório — sem isso o app não gera rota (RB04).</x-slot:subtitulo>
+    <x-slot:subtitulo>Obrigatório — sem isso o app não libera área, rota nem check-in (RB04).</x-slot:subtitulo>
+
+    @if (session('aviso'))
+        <p class="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">{{ session('aviso') }}</p>
+    @endif
 
     <div
         class="mx-auto max-w-2xl space-y-4 rounded-xl border border-surface-line bg-white p-4 shadow-panel sm:p-6"
         x-data="{
-            local: '',
-            segmento: 'MISTO',
-            horas: '08:00-17:00',
-            mixProspeccao: 80,
+            local: @js($setupInicial['local'] ?? ''),
+            segmento: @js($setupInicial['segmento'] ?? 'MISTO'),
+            horas: @js($setupInicial['horas'] ?? '08:00-17:00'),
+            mixProspeccao: @js($setupInicial['mix_prospeccao'] ?? 80),
             salvo: false,
+            erro: '',
+            salvando: false,
+            storeUrl: @js(route('app.setup.store')),
+            csrf: @js(csrf_token()),
+            areaUrl: @js(route('app.area')),
             init() {
                 try {
                     const d = JSON.parse(localStorage.getItem('prospecta.setup') || '{}');
-                    this.local = d.local || '';
-                    this.segmento = d.segmento || 'MISTO';
-                    this.horas = d.horas || '08:00-17:00';
-                    this.mixProspeccao = d.mixProspeccao ?? 80;
+                    if (!this.local && d.local) this.local = d.local;
+                    if (d.segmento) this.segmento = d.segmento;
+                    if (d.horas) this.horas = d.horas;
+                    if (d.mixProspeccao != null) this.mixProspeccao = d.mixProspeccao;
                     if (navigator.geolocation && !this.local) {
                         navigator.geolocation.getCurrentPosition((pos) => {
                             this.local = pos.coords.latitude.toFixed(4) + ', ' + pos.coords.longitude.toFixed(4);
@@ -24,10 +37,9 @@
                 } catch (e) {}
             },
             completo() {
-                return this.local && this.segmento && this.horas && this.mixProspeccao !== null;
+                return this.local && this.segmento && this.horas && this.mixProspeccao !== null && this.mixProspeccao !== '';
             },
-            salvar() {
-                if (!this.completo()) return;
+            persistirLocal() {
                 localStorage.setItem('prospecta.setup', JSON.stringify({
                     local: this.local,
                     segmento: this.segmento,
@@ -35,8 +47,42 @@
                     mixProspeccao: Number(this.mixProspeccao),
                     mixPosVenda: 100 - Number(this.mixProspeccao),
                 }));
-                this.salvo = true;
-                setTimeout(() => this.salvo = false, 1500);
+            },
+            async salvar(irArea = false) {
+                if (!this.completo() || this.salvando) return;
+                this.salvando = true;
+                this.erro = '';
+                this.persistirLocal();
+                try {
+                    const res = await fetch(this.storeUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Accept: 'application/json',
+                            'X-CSRF-TOKEN': this.csrf,
+                        },
+                        body: JSON.stringify({
+                            local: this.local,
+                            segmento: this.segmento,
+                            horas: this.horas,
+                            mix_prospeccao: Number(this.mixProspeccao),
+                        }),
+                    });
+                    const dados = await res.json();
+                    if (!res.ok) {
+                        throw new Error(dados.message || Object.values(dados.errors || {}).flat()[0] || 'Falha ao salvar setup.');
+                    }
+                    this.salvo = true;
+                    if (irArea) {
+                        window.location = dados.redirect || this.areaUrl;
+                        return;
+                    }
+                    setTimeout(() => this.salvo = false, 1500);
+                } catch (e) {
+                    this.erro = e.message || 'Erro ao salvar.';
+                } finally {
+                    this.salvando = false;
+                }
             }
         }"
     >
@@ -66,12 +112,13 @@
             <p class="text-xs text-ink-soft">Pós-venda: <span x-text="100 - Number(mixProspeccao)"></span>%</p>
         </label>
 
-        <p class="text-sm text-emerald-700" x-show="salvo" x-cloak>Setup salvo. Pode prospectar.</p>
+        <p class="text-sm text-emerald-700" x-show="salvo" x-cloak>Setup salvo no servidor. Pode prospectar.</p>
+        <p class="text-sm text-rose-700" x-show="erro" x-text="erro" x-cloak></p>
         <p class="text-sm text-amber-800" x-show="!completo()" x-cloak>Preencha os 4 campos para liberar a rota.</p>
 
         <div class="flex flex-col gap-2 sm:flex-row">
-            <button type="button" class="pwa-btn pwa-btn-primary sm:w-auto" :disabled="!completo()" @click="salvar()">Salvar setup</button>
-            <a href="{{ route('app.area') }}" class="pwa-btn pwa-btn-ghost sm:w-auto" @click.prevent="if (!completo()) { alert('Complete o setup primeiro'); return; } salvar(); window.location='{{ route('app.area') }}'">Onde prospectar hoje</a>
+            <button type="button" class="pwa-btn pwa-btn-primary sm:w-auto" :disabled="!completo() || salvando" @click="salvar(false)" x-text="salvando ? 'Salvando…' : 'Salvar setup'"></button>
+            <button type="button" class="pwa-btn pwa-btn-ghost sm:w-auto" :disabled="!completo() || salvando" @click="salvar(true)">Onde prospectar hoje</button>
         </div>
     </div>
 </x-layouts.app-pwa>
