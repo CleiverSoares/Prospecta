@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\PainelController;
+use App\Http\Controllers\Admin\PapelController;
 use App\Http\Controllers\App\InicioController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -24,6 +25,14 @@ Route::middleware(['auth', 'permission:admin.acessar'])
     ->name('admin.')
     ->group(function () {
         Route::get('/', PainelController::class)->name('painel');
+
+        Route::middleware('permission:papeis.gerenciar')->group(function () {
+            Route::get('/papeis', [PapelController::class, 'index'])->name('papeis.index');
+            Route::get('/papeis/criar', [PapelController::class, 'create'])->name('papeis.create');
+            Route::post('/papeis', [PapelController::class, 'store'])->name('papeis.store');
+            Route::get('/papeis/{papel}/editar', [PapelController::class, 'edit'])->name('papeis.edit');
+            Route::put('/papeis/{papel}', [PapelController::class, 'update'])->name('papeis.update');
+        });
     });
 
 Route::middleware(['auth', 'permission:app.acessar'])
