@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\StatusReceita;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'cnpj',
@@ -25,5 +26,10 @@ class Prospecto extends Model
             'lat' => 'float',
             'lng' => 'float',
         ];
+    }
+
+    public function visitas(): HasMany
+    {
+        return $this->hasMany(Visita::class);
     }
 }

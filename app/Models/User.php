@@ -51,4 +51,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(User::class, 'gestor_id');
     }
+
+    public function visitas(): HasMany
+    {
+        return $this->hasMany(Visita::class);
+    }
 }
