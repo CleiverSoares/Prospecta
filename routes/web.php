@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\PainelController;
 use App\Http\Controllers\Admin\PapelController;
 use App\Http\Controllers\Admin\UnidadeController;
 use App\Http\Controllers\App\InicioController;
+use App\Http\Controllers\App\ProspectoController;
 use App\Http\Controllers\App\TerritorioController;
 use App\Services\RedirecionamentoAuthService;
 use Illuminate\Support\Facades\Route;
@@ -63,6 +64,10 @@ Route::middleware(['auth', 'permission:app.acessar'])
         Route::post('/territorio/verificar', [TerritorioController::class, 'verificar'])
             ->middleware('permission:territorio.verificar')
             ->name('territorio.verificar');
+
+        Route::post('/prospectos/buscar', [ProspectoController::class, 'buscar'])
+            ->middleware('permission:prospectos.buscar')
+            ->name('prospectos.buscar');
     });
 
 require __DIR__.'/auth.php';
