@@ -1,10 +1,10 @@
-{{-- Container de conteúdo admin --}}
+{{-- Painel branco enterprise --}}
 @props([
     'padding' => true,
 ])
 
 <div {{ $attributes->merge([
-    'class' => 'admin-panel overflow-hidden rounded-2xl'.($padding ? ' p-6 sm:p-8' : ''),
+    'class' => 'admin-panel overflow-hidden rounded-xl'.($padding ? ' p-4 sm:p-5' : ''),
 ]) }}>
     {{ $slot }}
 </div>

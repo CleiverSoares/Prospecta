@@ -13,9 +13,9 @@
     $erros = $errors->get($nome);
 @endphp
 
-<div {{ $attributes->merge(['class' => 'space-y-2']) }}>
+<div {{ $attributes->merge(['class' => 'space-y-1.5']) }}>
     <div class="flex items-baseline justify-between gap-3">
-        <label for="{{ $nome }}" class="text-sm font-medium text-paper/80">
+        <label for="{{ $nome }}" class="text-sm font-medium text-ink">
             {{ $rotulo }}
         </label>
         {{ $acao ?? '' }}
@@ -30,11 +30,11 @@
         @if ($obrigatorio) required @endif
         @if ($autocomplete) autocomplete="{{ $autocomplete }}" @endif
         @if ($autofocus) autofocus @endif
-        class="h-12 w-full rounded-xl border border-white/15 bg-white/5 px-4 text-base text-paper outline-none transition placeholder:text-paper/35 focus:border-brand focus:bg-white/[0.07] focus:ring-2 focus:ring-brand/25"
+        class="h-10 w-full rounded-md border border-surface-line bg-white px-3 text-sm text-ink outline-none transition placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/20"
     >
 
     @if ($erros)
-        <ul class="space-y-1 text-sm text-rose-400">
+        <ul class="space-y-1 text-sm text-rose-600">
             @foreach ((array) $erros as $erro)
                 <li>{{ $erro }}</li>
             @endforeach

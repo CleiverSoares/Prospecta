@@ -6,7 +6,14 @@ function formatarCep(digitos) {
 
 function poligonoDoDraw(draw) {
     const data = draw.getAll();
-    const feature = data.features.find((f) => f.geometry?.type === 'Polygon');
+    const feature = data.features.find((f) => {
+        const coords = f.geometry?.coordinates?.[0];
+
+        return f.geometry?.type === 'Polygon'
+            && Array.isArray(coords)
+            && coords.length >= 4
+            && coords.every((c) => Array.isArray(c) && Number.isFinite(c[0]) && Number.isFinite(c[1]));
+    });
 
     return feature ? feature.geometry : null;
 }
@@ -20,6 +27,7 @@ export function registrarMapaUnidade(Alpine) {
         poligonoInicial: config.poligonoInicial || null,
         status: '',
         erro: '',
+        temArea: false,
         mapa: null,
         draw: null,
 
@@ -67,25 +75,51 @@ export function registrarMapaUnidade(Alpine) {
                     polygon: true,
                     trash: true,
                 },
-                defaultMode: 'draw_polygon',
+                // simple_select evita polígono fantasma (coords null) do draw_polygon vazio
+                defaultMode: 'simple_select',
             });
 
             this.mapa.addControl(this.draw);
 
-            if (this.poligonoInicial?.type === 'Polygon') {
-                this.draw.add({
-                    type: 'Feature',
-                    properties: {},
-                    geometry: this.poligonoInicial,
-                });
-                this.draw.changeMode('simple_select');
-                this.sincronizarCampo();
-                this.ajustarVisao(mapboxgl, this.poligonoInicial);
-            }
+            this.mapa.on('load', () => {
+                if (this.poligonoInicial?.type === 'Polygon') {
+                    this.draw.add({
+                        type: 'Feature',
+                        properties: {},
+                        geometry: this.poligonoInicial,
+                    });
+                    this.sincronizarCampo();
+                    this.ajustarVisao(mapboxgl, this.poligonoInicial);
+                    this.temArea = true;
+                    this.status = 'Área carregada. Use a lixeira para apagar ou o polígono para redesenhar.';
+                } else {
+                    this.status = 'Clique no ícone de polígono (canto do mapa) e marque os vértices da área.';
+                }
+            });
 
             this.mapa.on('draw.create', () => this.aoDesenhar());
             this.mapa.on('draw.update', () => this.aoDesenhar());
             this.mapa.on('draw.delete', () => this.aoApagar());
+            this.mapa.on('draw.modechange', (e) => this.aoMudarModo(e));
+        },
+
+        iniciarDesenho() {
+            if (!this.draw) {
+                return;
+            }
+
+            this.erro = '';
+            this.draw.deleteAll();
+            this.sincronizarCampo();
+            this.temArea = false;
+            this.draw.changeMode('draw_polygon');
+            this.status = 'Clique no mapa para os vértices. Dê duplo clique (ou clique no primeiro ponto) para fechar a área.';
+        },
+
+        aoMudarModo(e) {
+            if (e.mode === 'draw_polygon' && !this.temArea) {
+                this.status = 'Clique no mapa para os vértices. Dê duplo clique para fechar a área.';
+            }
         },
 
         sincronizarCampo() {
@@ -95,6 +129,8 @@ export function registrarMapaUnidade(Alpine) {
             if (campo) {
                 campo.value = poligono ? JSON.stringify(poligono) : '';
             }
+
+            this.temArea = Boolean(poligono);
         },
 
         ajustarVisao(mapboxgl, poligono) {
@@ -113,7 +149,14 @@ export function registrarMapaUnidade(Alpine) {
         },
 
         async aoDesenhar() {
-            const features = this.draw.getAll().features.filter((f) => f.geometry?.type === 'Polygon');
+            const features = this.draw.getAll().features.filter((f) => {
+                const coords = f.geometry?.coordinates?.[0];
+
+                return f.geometry?.type === 'Polygon'
+                    && Array.isArray(coords)
+                    && coords.length >= 4
+                    && coords.every((c) => Array.isArray(c) && Number.isFinite(c[0]));
+            });
 
             if (features.length > 1) {
                 const manter = features[features.length - 1];
@@ -122,12 +165,17 @@ export function registrarMapaUnidade(Alpine) {
             }
 
             this.sincronizarCampo();
+
+            if (!this.temArea) {
+                return;
+            }
+
             await this.estimarCeps();
         },
 
         aoApagar() {
             this.sincronizarCampo();
-            this.status = '';
+            this.status = 'Área removida. Clique em “Desenhar área” ou no ícone de polígono para marcar de novo.';
             this.erro = '';
         },
 
@@ -138,7 +186,7 @@ export function registrarMapaUnidade(Alpine) {
                 return;
             }
 
-            this.status = 'Estimando CEPs…';
+            this.status = 'Estimando CEPs da área…';
             this.erro = '';
 
             try {
@@ -172,10 +220,10 @@ export function registrarMapaUnidade(Alpine) {
                     fim.value = formatarCep(dados.cep_fim);
                 }
 
-                this.status = `Faixa estimada: ${formatarCep(dados.cep_inicio)} → ${formatarCep(dados.cep_fim)}`;
+                this.status = `Área marcada. Faixa estimada: ${formatarCep(dados.cep_inicio)} → ${formatarCep(dados.cep_fim)}`;
             } catch (e) {
                 this.erro = e.message || 'Erro ao estimar CEPs.';
-                this.status = '';
+                this.status = 'Área marcada, mas a estimativa de CEP falhou.';
             }
         },
     }));

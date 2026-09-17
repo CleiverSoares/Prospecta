@@ -8,11 +8,11 @@
 ])
 
 @php
-    $classeCampo = 'h-11 w-full rounded-xl border border-brand/20 bg-ink/60 px-3 text-sm text-paper outline-none transition placeholder:text-paper/30 focus:border-brand focus:ring-2 focus:ring-brand/20';
+    $classeCampo = 'h-9 w-full rounded-md border border-surface-line bg-white px-3 text-sm text-ink outline-none transition placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/20';
 @endphp
 
-<div class="space-y-2">
-    <label for="{{ $nome }}" class="block text-sm font-semibold text-paper/70">
+<div class="space-y-1.5">
+    <label for="{{ $nome }}" class="block text-sm font-medium text-ink">
         {{ $rotulo }}
         @if ($obrigatorio)<span class="text-brand">*</span>@endif
     </label>
@@ -39,6 +39,6 @@
     @endif
 
     @error($nome)
-        <p class="text-sm text-rose-400">{{ $message }}</p>
+        <p class="text-sm text-rose-600">{{ $message }}</p>
     @enderror
 </div>

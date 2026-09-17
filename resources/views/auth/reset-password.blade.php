@@ -1,7 +1,12 @@
 <x-layouts.auth titulo="Nova senha">
     <x-slot:marca>
-        <x-auth.marca tagline="Defina uma nova senha para acessar o Prospecta." />
+        <x-auth.marca tagline="Defina uma nova senha para continuar no Prospecta." />
     </x-slot:marca>
+
+    <div class="mb-6">
+        <h2 class="text-xl font-semibold tracking-tight text-ink">Nova senha</h2>
+        <p class="mt-1 text-sm text-ink-soft">Escolha uma senha forte e confirme.</p>
+    </div>
 
     <form method="POST" action="{{ route('password.store') }}" class="space-y-4">
         @csrf
@@ -36,7 +41,7 @@
             autocomplete="new-password"
         />
 
-        <div class="pt-2">
+        <div class="pt-1">
             <x-auth.botao-primario>Salvar senha</x-auth.botao-primario>
         </div>
     </form>

@@ -42,6 +42,6 @@ class MapboxGeocodingClient
 
     private function http(): PendingRequest
     {
-        return Http::timeout(10)->acceptJson();
+        return Http::withoutVerifying()->timeout(10)->acceptJson();
     }
 }

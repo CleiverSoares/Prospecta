@@ -12,11 +12,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable([
     'cnpj',
     'razao_social',
+    'endereco',
+    'telefone',
     'cep',
     'lat',
     'lng',
     'status_receita',
     'is_cliente',
+    'origem',
+    'google_place_id',
 ])]
 class Prospecto extends Model
 {

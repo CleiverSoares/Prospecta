@@ -1,0 +1,17 @@
+{
+  "name": "Prospecta",
+  "short_name": "Prospecta",
+  "description": "Prospecção de campo com território sob controle.",
+  "start_url": "/app",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0083C1",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}
