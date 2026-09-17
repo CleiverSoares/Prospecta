@@ -31,11 +31,32 @@
                         <p class="mt-1 text-lg font-semibold text-ink" x-text="atual.razao_social"></p>
                         <p class="text-xs text-ink-faint" x-text="atual.cnpj"></p>
                         <p class="text-sm text-ink-soft" x-text="atual.endereco || atual.guia_bolso"></p>
-                        <p
-                            class="mt-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950"
-                            x-show="atual.is_cliente"
-                            x-cloak
-                        >Oportunidade de upsell — leia o guia antes do check-in.</p>
+                    </div>
+
+                    <div
+                        class="space-y-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-3"
+                        x-show="atual.is_cliente"
+                        x-cloak
+                    >
+                        <p class="text-sm font-semibold text-amber-950">Oportunidade de upsell (obrigatório)</p>
+                        <p class="text-sm text-amber-900" x-text="atual.guia?.pitch || atual.guia_bolso"></p>
+                        <template x-for="(obj, idx) in (atual.guia?.objecoes || [])" :key="'c-obj-'+idx">
+                            <details class="rounded-lg bg-white/80 px-3 py-2 text-sm">
+                                <summary class="cursor-pointer font-medium" x-text="obj.titulo"></summary>
+                                <p class="mt-1 text-ink-soft" x-text="obj.resposta"></p>
+                            </details>
+                        </template>
+                        <a
+                            x-show="atual.guia?.ajuda_url"
+                            :href="atual.guia?.ajuda_url"
+                            target="_blank"
+                            rel="noopener"
+                            class="inline-flex text-sm font-semibold text-brand"
+                        >Ajuda Alterdata →</a>
+                        <label class="mt-2 flex items-start gap-2 text-sm text-amber-950">
+                            <input type="checkbox" class="mt-1 rounded border-amber-400 text-brand" x-model="upsellAck">
+                            <span>Li a oportunidade de upsell e posso iniciar o check-in.</span>
+                        </label>
                     </div>
 
                     <p
@@ -70,7 +91,7 @@
                     <button
                         type="button"
                         class="pwa-btn pwa-btn-primary"
-                        :disabled="!noLocal"
+                        :disabled="!noLocal || (atual.is_cliente && !upsellAck)"
                         @click="salvar()"
                     >Salvar visita</button>
                 </div>

@@ -392,6 +392,7 @@ export function registrarFluxoCampo(Alpine) {
         selecionado: null,
         carregandoDetalhe: false,
         urlMaps: null,
+        urlWaze: null,
         status: '',
         erro: '',
         avisos: [],
@@ -643,6 +644,18 @@ export function registrarFluxoCampo(Alpine) {
                 this.avisos = dados.avisos || [];
                 localStorage.setItem('prospecta.rota', JSON.stringify(this.itens));
                 this.urlMaps = dados.url_maps;
+                this.urlWaze = dados.url_waze;
+                localStorage.setItem('prospecta.rota_meta', JSON.stringify({
+                    url_maps: dados.url_maps,
+                    url_waze: dados.url_waze,
+                    blocos: dados.blocos || null,
+                }));
+                if (navigator.serviceWorker?.controller) {
+                    navigator.serviceWorker.controller.postMessage({
+                        type: 'CACHE_ROTA',
+                        urls: ['/app/rota', '/app/checkin', '/build/manifest.json'].filter(Boolean),
+                    });
+                }
                 this._rotaDesenhada = false;
                 this.renderPins();
                 this.tracar(true);
@@ -658,6 +671,7 @@ export function registrarFluxoCampo(Alpine) {
             this.markers = [];
             this.itens.forEach((item) => {
                 if (item.lat == null) return;
+                const cor = item.visitado ? '#94A3B8' : (item.is_cliente ? '#0083C1' : '#E11D48');
                 const marker = new google.maps.Marker({
                     map: this.mapa,
                     position: { lat: item.lat, lng: item.lng },
@@ -665,7 +679,7 @@ export function registrarFluxoCampo(Alpine) {
                     icon: {
                         path: google.maps.SymbolPath.CIRCLE,
                         scale: 14,
-                        fillColor: item.is_cliente ? '#0083C1' : '#E11D48',
+                        fillColor: cor,
                         fillOpacity: 1,
                         strokeColor: '#fff',
                         strokeWeight: 2,
@@ -705,6 +719,26 @@ export function registrarFluxoCampo(Alpine) {
             const pts = [origem, ...paradas.map((p) => ({ lat: p.lat, lng: p.lng }))];
             this.urlMaps = 'https://www.google.com/maps/dir/' + pts.map((p) => `${p.lat},${p.lng}`).join('/');
         },
+
+        adicionarNaRota(lead) {
+            if (!lead?.id || this.itens.some((i) => i.id === lead.id)) return;
+            const item = {
+                ...lead,
+                ordem: this.itens.length + 1,
+                guia_bolso: lead.guia_bolso || 'Incluído na rota (oportunidade no caminho).',
+            };
+            this.itens.push(item);
+            localStorage.setItem('prospecta.rota', JSON.stringify(this.itens));
+            this.renderPins();
+            this.tracar(true);
+            this.status = `Parada extra adicionada: ${item.razao_social || item.nome || 'lead'}.`;
+        },
+
+        leadsForaDaRota() {
+            const leads = JSON.parse(localStorage.getItem('prospecta.leads') || '[]');
+            const ids = new Set(this.itens.map((i) => i.id));
+            return leads.filter((l) => l.id && !ids.has(l.id)).slice(0, 8);
+        },
     }));
 
     Alpine.data('checkinCampo', (config) => ({
@@ -722,6 +756,8 @@ export function registrarFluxoCampo(Alpine) {
         audioBlob: null,
         msg: '',
         erro: '',
+        upsellAck: false,
+        objecaoAberta: null,
         mapa: null,
         carroMarker: null,
         pinMarker: null,
@@ -844,6 +880,10 @@ export function registrarFluxoCampo(Alpine) {
         async salvar() {
             if (!this.atual) {
                 this.erro = 'Sem parada na rota.';
+                return;
+            }
+            if (this.atual.is_cliente && !this.upsellAck) {
+                this.erro = 'Confirme que leu a oportunidade de upsell antes do check-in.';
                 return;
             }
             if (!this.gps) {

@@ -119,6 +119,27 @@
                 autocomplete="postal-code"
             />
         </div>
+
+        <div class="mt-4 grid gap-4 sm:grid-cols-3">
+            <x-admin.campo
+                rotulo="Origem preferencial (rótulo)"
+                nome="origem_rotulo"
+                :valor="old('origem_rotulo', $usuario?->origem_rotulo)"
+                placeholder="Hotel / Escritório"
+            />
+            <x-admin.campo
+                rotulo="Origem lat"
+                nome="origem_lat"
+                :valor="old('origem_lat', $usuario?->origem_lat)"
+                placeholder="-22.9"
+            />
+            <x-admin.campo
+                rotulo="Origem lng"
+                nome="origem_lng"
+                :valor="old('origem_lng', $usuario?->origem_lng)"
+                placeholder="-43.2"
+            />
+        </div>
     </div>
 
     <div class="flex flex-wrap gap-2 border-t border-surface-line pt-5">

@@ -1,27 +1,39 @@
-/* Admin enterprise premium — azul Alterdata / densidade Lightning */
+/* Admin field-ops — map-first, menos caixa Lightning */
 
 .admin-shell {
     background:
-        radial-gradient(800px 320px at 0% 0%, rgba(0, 131, 193, 0.06), transparent 55%),
-        #f4f6f9;
+        radial-gradient(900px 420px at 8% -10%, rgba(0, 131, 193, 0.12), transparent 55%),
+        radial-gradient(700px 360px at 100% 0%, rgba(0, 110, 163, 0.07), transparent 50%),
+        linear-gradient(180deg, #eef5fa 0%, #f7f9fb 40%, #f4f6f9 100%);
+}
+
+.admin-shell--mapa {
+    background: #0f1720;
 }
 
 .admin-panel {
-    border: 1px solid #e5eaf0;
-    background: #ffffff;
-    box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.9) inset,
-        0 1px 2px rgba(27, 35, 41, 0.04),
-        0 8px 24px rgba(27, 35, 41, 0.04);
+    border: 1px solid rgba(229, 234, 240, 0.9);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(27, 35, 41, 0.06);
+}
+
+.admin-panel--soft {
+    border: none;
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 8px 28px rgba(27, 35, 41, 0.05);
 }
 
 .admin-nav-link {
     position: relative;
-    transition: background 120ms ease, color 120ms ease;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    transition: background 140ms ease, color 140ms ease, transform 140ms ease;
 }
 
 .admin-nav-link[data-ativo="1"] {
-    background: #e6f4fb;
+    background: rgba(230, 244, 251, 0.95);
     color: #006ea3;
     font-weight: 600;
 }
@@ -29,16 +41,107 @@
 .admin-nav-link[data-ativo="1"]::before {
     content: '';
     position: absolute;
-    left: 0;
-    top: 6px;
-    bottom: 6px;
-    width: 3px;
-    border-radius: 0 2px 2px 0;
+    left: 0.35rem;
+    top: 50%;
+    width: 0.35rem;
+    height: 0.35rem;
+    border-radius: 999px;
     background: #0083c1;
+    transform: translateY(-50%);
 }
 
 .admin-sidebar-brand {
-    background:
-        linear-gradient(145deg, #0083c1 0%, #006ea3 100%);
-    box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.08);
+    background: transparent;
+    padding-top: 1.25rem;
+}
+
+.admin-chip {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 6.5rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 24px rgba(15, 23, 32, 0.12);
+    padding: 0.7rem 0.9rem;
+}
+
+.admin-chip__label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #8a98a6;
+}
+
+.admin-chip__value {
+    font-size: 1.25rem;
+    font-weight: 650;
+    line-height: 1.1;
+    color: #1b2329;
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-layer-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.86);
+    backdrop-filter: blur(10px);
+    padding: 0.45rem 0.8rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #5b6b79;
+    box-shadow: 0 6px 18px rgba(15, 23, 32, 0.1);
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.admin-layer-toggle[data-on="1"] {
+    background: #0083c1;
+    border-color: #0083c1;
+    color: #fff;
+}
+
+.admin-mapa-stage {
+    position: relative;
+    min-height: calc(100dvh - 5.5rem);
+    overflow: hidden;
+    border-radius: 1.25rem;
+    background: #d7e3ec;
+    box-shadow: 0 16px 40px rgba(15, 23, 32, 0.12);
+}
+
+.admin-mapa-stage__map {
+    position: absolute;
+    inset: 0;
+}
+
+.admin-table-wrap {
+    overflow: hidden;
+    border-radius: 1.25rem;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 10px 28px rgba(27, 35, 41, 0.05);
+}
+
+.admin-table-wrap table thead {
+    background: transparent;
+}
+
+.admin-table-wrap th {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #8a98a6;
+    letter-spacing: 0.01em;
+}
+
+.admin-table-wrap tbody tr {
+    transition: background 120ms ease;
+}
+
+.admin-table-wrap tbody tr:hover {
+    background: rgba(230, 244, 251, 0.45);
 }

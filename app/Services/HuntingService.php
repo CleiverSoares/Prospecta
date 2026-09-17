@@ -15,16 +15,24 @@ class HuntingService
         private readonly GooglePlacesClient $googlePlacesClient,
         private readonly TerritorioService $territorioService,
         private readonly ProspectoRepository $prospectoRepository,
+        private readonly CercaTemporariaService $cercaTemporariaService,
     ) {}
 
     /**
      * @param  array{bairro?: ?string, cidade?: ?string, uf?: ?string, cep?: ?string, lat?: ?float, lng?: ?float, segmento?: ?string, poligono?: ?array}  $area
-     * @return array{territorio: array<string, mixed>, prospectos: list<array<string, mixed>>}
+     * @return array{territorio: array<string, mixed>, prospectos: list<array<string, mixed>>, cerca?: array<string, mixed>|null}
      */
     public function prospectar(User $usuario, array $area): array
     {
         $coordenadas = $this->resolverCoordenadas($area);
         $cep = $this->resolverCep($area, $coordenadas);
+
+        if ($conflito = $this->cercaTemporariaService->conflitoComOutro($usuario, $cep)) {
+            throw ValidationException::withMessages([
+                'area' => 'Cerca temporária de outro vendedor até '.$conflito->expira_em->format('d/m/Y').'.',
+            ]);
+        }
+
         $territorio = $this->territorioService->verificarCep($usuario, $cep);
 
         if (! $territorio['permitido']) {
@@ -80,10 +88,22 @@ class HuntingService
             $prospectos[] = $serial;
         }
 
+        $cerca = $this->cercaTemporariaService->reservar($usuario, [
+            'rotulo' => trim(($area['bairro'] ?? '').' '.($area['cidade'] ?? '')) ?: 'Cerca do hunting',
+            'cep_inicio' => $cep,
+            'cep_fim' => $cep,
+            'poligono_geojson' => $area['poligono'] ?? null,
+        ]);
+
         return [
             'territorio' => $territorio,
             'prospectos' => $prospectos,
             'centro' => $coordenadas,
+            'cerca' => [
+                'id' => $cerca->id,
+                'expira_em' => $cerca->expira_em->toIso8601String(),
+                'dias' => (int) config('prospecta.cerca_dias', 30),
+            ],
         ];
     }
 

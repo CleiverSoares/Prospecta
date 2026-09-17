@@ -32,6 +32,9 @@ class UsuarioService
                 'gestor_id' => $dados['gestor_id'] ?? null,
                 'cep_base_inicio' => $dados['cep_base_inicio'] ?? null,
                 'cep_base_fim' => $dados['cep_base_fim'] ?? null,
+                'origem_rotulo' => $dados['origem_rotulo'] ?? null,
+                'origem_lat' => $dados['origem_lat'] ?? null,
+                'origem_lng' => $dados['origem_lng'] ?? null,
                 'email_verified_at' => now(),
             ]);
 
@@ -63,6 +66,9 @@ class UsuarioService
                 'gestor_id' => $dados['gestor_id'] ?? null,
                 'cep_base_inicio' => $dados['cep_base_inicio'] ?? null,
                 'cep_base_fim' => $dados['cep_base_fim'] ?? null,
+                'origem_rotulo' => $dados['origem_rotulo'] ?? null,
+                'origem_lat' => $dados['origem_lat'] ?? null,
+                'origem_lng' => $dados['origem_lng'] ?? null,
             ];
 
             if (! empty($dados['password'])) {

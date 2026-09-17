@@ -8,6 +8,10 @@ use Illuminate\Support\Collection;
 
 class RotaService
 {
+    public function __construct(
+        private readonly GuiaBolsoService $guiaBolsoService,
+    ) {}
+
     /**
      * @param  iterable<int, Prospecto>  $prospectos
      * @param  array{lat: float, lng: float}|null  $origem
@@ -15,6 +19,7 @@ class RotaService
      * @return array{
      *     itens: list<array<string, mixed>>,
      *     url_maps: string|null,
+     *     url_waze: string|null,
      *     avisos: list<string>,
      *     blocos: array{manha: array{inicio: string, fim: string}, almoco: array{inicio: string, fim: string}, tarde: array{inicio: string, fim: string}}
      * }
@@ -42,7 +47,7 @@ class RotaService
         if ($this->bloqueadoPorDiaSegmento($segmento)) {
             $avisos[] = 'Janela de ouro: contabilidade — não agenda nos dias 01–05 do mês.';
 
-            return ['itens' => [], 'url_maps' => null, 'avisos' => $avisos, 'blocos' => $blocos];
+            return ['itens' => [], 'url_maps' => null, 'url_waze' => null, 'avisos' => $avisos, 'blocos' => $blocos];
         }
 
         $comCoordenadas = Collection::make($prospectos)
@@ -86,10 +91,16 @@ class RotaService
             $avisos,
         );
 
+        $visitadosHoje = \App\Models\Visita::query()
+            ->whereDate('created_at', today())
+            ->pluck('prospecto_id')
+            ->flip();
+
         $itens = [];
         foreach ($agendados as $i => $slot) {
             /** @var Prospecto $p */
             $p = $slot['prospecto'];
+            $guia = $this->guiaBolsoService->para($segmento, (bool) $p->is_cliente);
             $itens[] = [
                 'ordem' => $i + 1,
                 'id' => $p->id,
@@ -103,9 +114,9 @@ class RotaService
                 'origem' => $p->origem,
                 'google_place_id' => $p->google_place_id,
                 'is_cliente' => (bool) $p->is_cliente,
-                'guia_bolso' => $p->is_cliente
-                    ? 'Cliente base — valide upsell (Pack / e-Contador) antes do check-in.'
-                    : $this->guiaPorSegmento($segmento),
+                'visitado' => $visitadosHoje->has($p->id),
+                'guia_bolso' => $guia['pitch'],
+                'guia' => $guia,
                 'horario_estimado' => $slot['horario']->toIso8601String(),
                 'bloco' => $slot['bloco'],
                 'grupo_predio' => $slot['grupo_predio'],
@@ -115,6 +126,7 @@ class RotaService
         return [
             'itens' => $itens,
             'url_maps' => $this->montarUrlMaps($itens),
+            'url_waze' => $this->montarUrlWaze($itens),
             'avisos' => $avisos,
             'blocos' => $blocos,
         ];
@@ -397,12 +409,7 @@ class RotaService
 
     private function guiaPorSegmento(string $segmento): string
     {
-        return match ($segmento) {
-            'CONTABIL' => 'Sugestão: Linha Pack — confirme porte e software atual.',
-            'RESTAURANTE' => 'Sugestão: Spice — foque fluxo de caixa e delivery.',
-            'VAREJO' => 'Sugestão: Pack PDV — confirme volume de NF-e.',
-            default => 'Lead novo — confirme porte e decisor na recepção.',
-        };
+        return $this->guiaBolsoService->para($segmento)['pitch'];
     }
 
     private function haversineKm(float $lat1, float $lng1, float $lat2, float $lng2): float
@@ -420,6 +427,20 @@ class RotaService
         $a = sin($Δφ / 2) ** 2 + cos($φ1) * cos($φ2) * sin($Δλ / 2) ** 2;
 
         return 2 * $r * asin(min(1, sqrt($a)));
+    }
+
+    /**
+     * @param  list<array{lat: float, lng: float}>  $itens
+     */
+    private function montarUrlWaze(array $itens): ?string
+    {
+        if ($itens === []) {
+            return null;
+        }
+
+        $ultimo = $itens[array_key_last($itens)];
+
+        return 'https://waze.com/ul?ll='.$ultimo['lat'].','.$ultimo['lng'].'&navigate=yes';
     }
 
     /**

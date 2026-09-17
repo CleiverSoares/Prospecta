@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\PapelController;
 use App\Http\Controllers\Admin\UnidadeController;
 use App\Http\Controllers\Admin\UsuarioController;
 use App\Http\Controllers\App\AreaController;
+use App\Http\Controllers\App\CercaController;
 use App\Http\Controllers\App\CheckinController;
 use App\Http\Controllers\App\InicioController;
 use App\Http\Controllers\App\PlaceDetalheController;
@@ -112,6 +113,10 @@ Route::middleware(['auth', 'permission:app.acessar'])
             Route::post('/rota/gerar', [RotaController::class, 'gerar'])
                 ->middleware('permission:prospectos.ver')
                 ->name('rota.gerar');
+
+            Route::post('/cercas', [CercaController::class, 'store'])
+                ->middleware('permission:prospectos.buscar')
+                ->name('cercas.store');
 
             Route::post('/visitas', [CheckinController::class, 'store'])
                 ->middleware('permission:visitas.criar')
