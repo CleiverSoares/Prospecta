@@ -1,68 +1,53 @@
 # Prospecta
 
-**Prospecção de campo com inteligência de território.**  
-Admin web + PWA mobile para o time de vendas — controle de área por unidade/CEP, rota do dia e check-in com evidência.
-
-<p>
-  <img alt="Laravel" src="https://img.shields.io/badge/Laravel-13-FF2D20?style=flat-square&logo=laravel&logoColor=white" />
-  <img alt="PHP" src="https://img.shields.io/badge/PHP-8.3+-777BB4?style=flat-square&logo=php&logoColor=white" />
-  <img alt="PWA" src="https://img.shields.io/badge/PWA-mobile%20first-0A66C2?style=flat-square" />
-  <img alt="Status" src="https://img.shields.io/badge/status-em%20construção-yellow?style=flat-square" />
-</p>
-
----
-
-## Por que existe
-
-Times comerciais perdem tempo e geram conflito quando duas unidades pisam na mesma área. O Prospecta deixa explícito **onde cada um pode prospectar**, organiza a **rota do vendedor** e registra a **visita** (foto/áudio) — do desktop do gestor ao bolso do vendedor.
-
-## O que entrega (MVP)
-
-| Área | Capacidade |
-|------|------------|
-| **Território** | CEP na minha unidade / área livre / bloqueado |
-| **Admin** | Unidades no mapa (Mapbox), usuários e papéis (Spatie) |
-| **PWA** | Setup diário → área → rota → check-in |
-| **Prospectos** | Busca (ReceitaWS mock) + rota (regra vertical / janela de ouro) |
-
-## Arquitetura (resumo)
-
-```
-Controller → Service → Repository → Model
-```
-
-Queries **somente** no Repository. Authz com **Spatie** (roles/permissions no banco). Código de domínio em **PT-BR**. Segredos só no `.env`.
+Field sales com território — PWA do vendedor + admin desktop. Inspiração de capacidade no Salesforce Maps; visual próprio Alterdata (`#0083C1`).
 
 ## Stack
 
-Laravel 13 · MySQL · Blade · Vite · Mapbox · PWA · Spatie Permission · testes automatizados
+Laravel 13 · Spatie Permission · Blade + Alpine · Vite · Mapbox (admin) · Google Places/Maps (campo)
 
-## Git & qualidade
-
-- Branch por feature (`feature/...`)
-- Commits semânticos, merge com testes verdes
-- TDD no domínio (território primeiro)
-
-## Setup local
+## Subir local
 
 ```bash
 cp .env.example .env
-composer install
 php artisan key:generate
-# configure DB no .env
-php artisan migrate
-php artisan serve
+php artisan migrate --seed
+npm install && npm run build
+php artisan serve --host=127.0.0.1 --port=8000
 ```
 
-> Tokens Mapbox e afins só em `.env` — nunca no git. Ver `.env.example`.
+Abra **http://127.0.0.1:8000** (HTTP, não HTTPS).
 
-## Roadmap (alto nível)
+### Tokens no `.env`
 
-```
-Fundação → Domínio → Spatie/Auth → Unidades → Território
-    → Prospectos → Rota → Visitas → PWA → Admin → Polimento
-```
+- `MAPBOX_ACCESS_TOKEN` / `VITE_MAPBOX_ACCESS_TOKEN` — painel e unidades
+- `GOOGLE_MAPS_API_KEY` / `GOOGLE_PLACES_API_KEY` — PWA, Places, Directions
+- `RECEITA_WS_DRIVER=mock|http` — mock por padrão; `http` + URL/token para Receita real
+- `AJUDA_ALTERDATA_URL` — link do guia de bolso
 
-## Licença
+### Ngrok
 
-MIT (ou a que o repositório definir). Projeto de portfólio / estudo de produto comercial.
+Mantenha `APP_URL=http://127.0.0.1:8000` e assets relativos. O app força HTTPS só quando o request chega via proxy HTTPS. Evite vários `artisan serve` na mesma porta.
+
+## Logins demo (senha `password`)
+
+| E-mail | Papel |
+|--------|--------|
+| `adm@prospecta.test` | Admin |
+| `gestor@prospecta.test` | Gestor Filial Rio |
+| `vendedor@prospecta.test` | Vendedor PWA |
+| `vendedor.livre@prospecta.test` | Área livre |
+
+## Fluxos
+
+**Vendedor:** Setup (4 campos, sessão) → Área (bairro/cerca) → Rota (cérebro vertical/janela/blocos) → Maps/Waze → Check-in (GPS 100m + foto + áudio; upsell gate em cliente).
+
+**Admin:** Painel map-first com chips, filtros, camadas (unidades/prospectos/visitas/calor) e placar do dia · Unidades · Usuários · Papéis · Integrações (UI).
+
+## Arquitetura
+
+`Controller → Service → Repository → Model` · queries só em Repository (evolução contínua no painel via `PainelService`).
+
+## Roadmap
+
+Ver [`docs/ROADMAP.md`](docs/ROADMAP.md) (Prospecta V3: layout field-ops, co-piloto, dashboard, offline/cerca, APIs).

@@ -31,6 +31,14 @@ class UsuarioController extends Controller
             });
         }
 
+        if (request()->filled('q')) {
+            $termo = '%'.request('q').'%';
+            $query->where(function ($q) use ($termo) {
+                $q->where('name', 'like', $termo)
+                    ->orWhere('email', 'like', $termo);
+            });
+        }
+
         return view('admin.usuarios.index', [
             'usuarios' => $query->paginate(20)->withQueryString(),
         ]);

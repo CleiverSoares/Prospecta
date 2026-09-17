@@ -15,14 +15,14 @@
 @if ($href)
     <a
         href="{{ $href }}"
-        {{ $attributes->merge(['class' => "inline-flex h-9 items-center justify-center rounded-md px-3.5 text-sm font-semibold transition {$classes}"]) }}
+        {{ $attributes->merge(['class' => "inline-flex h-10 items-center justify-center rounded-2xl px-4 text-sm font-semibold transition {$classes}"]) }}
     >
         {{ $slot }}
     </a>
 @else
     <button
         type="{{ $tipo }}"
-        {{ $attributes->merge(['class' => "inline-flex h-9 items-center justify-center rounded-md px-3.5 text-sm font-semibold transition {$classes}"]) }}
+        {{ $attributes->merge(['class' => "inline-flex h-10 items-center justify-center rounded-2xl px-4 text-sm font-semibold transition {$classes}"]) }}
     >
         {{ $slot }}
     </button>

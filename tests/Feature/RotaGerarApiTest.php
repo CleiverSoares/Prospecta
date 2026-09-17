@@ -43,7 +43,7 @@ class RotaGerarApiTest extends TestCase
                 'mix_prospeccao' => 80,
             ])
             ->assertOk()
-            ->assertJsonStructure(['itens', 'url_maps', 'avisos', 'blocos']);
+            ->assertJsonStructure(['itens', 'url_maps', 'url_waze', 'avisos', 'blocos']);
 
         $ids = collect($resposta->json('itens'))->pluck('id')->all();
         $this->assertContains($a->id, $ids);

@@ -61,4 +61,8 @@ return [
         'active' => env('INTEGRACAO_ACTIVE_LABEL', 'ActiveCampaign'),
     ],
 
+    'ajuda_alterdata_url' => env('AJUDA_ALTERDATA_URL', 'https://ajuda.alterdata.com.br'),
+
+    'cerca_dias' => (int) env('CERCA_TEMPORARIA_DIAS', 30),
+
 ];

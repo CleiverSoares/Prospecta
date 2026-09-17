@@ -42,6 +42,9 @@ class SalvarUsuarioRequest extends FormRequest
             ],
             'cep_base_inicio' => ['nullable', 'string', 'size:8'],
             'cep_base_fim' => ['nullable', 'string', 'size:8'],
+            'origem_rotulo' => ['nullable', 'string', 'max:120'],
+            'origem_lat' => ['nullable', 'numeric', 'between:-90,90'],
+            'origem_lng' => ['nullable', 'numeric', 'between:-180,180'],
             'role' => ['required', 'string', Rule::in(['adm', 'gestor', 'vendedor'])],
         ];
     }

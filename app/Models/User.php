@@ -20,6 +20,9 @@ use Spatie\Permission\Traits\HasRoles;
     'gestor_id',
     'cep_base_inicio',
     'cep_base_fim',
+    'origem_lat',
+    'origem_lng',
+    'origem_rotulo',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
@@ -35,6 +38,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'origem_lat' => 'float',
+            'origem_lng' => 'float',
         ];
     }
 

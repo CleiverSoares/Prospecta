@@ -46,6 +46,14 @@
                     rel="noopener"
                     class="pwa-btn pwa-btn-ghost"
                 >Google Maps</a>
+                <a
+                    x-show="urlWaze"
+                    x-cloak
+                    :href="urlWaze"
+                    target="_blank"
+                    rel="noopener"
+                    class="pwa-btn pwa-btn-ghost"
+                >Waze</a>
                 <a href="{{ route('app.checkin') }}" class="pwa-btn pwa-btn-primary">Check-in</a>
             </section>
 
@@ -136,6 +144,23 @@
                 </template>
             </section>
 
+            <section class="space-y-2" x-show="leadsForaDaRota().length" x-cloak>
+                <p class="text-xs font-semibold text-ink-faint">No caminho — adicionar à rota</p>
+                <template x-for="lead in leadsForaDaRota()" :key="'nr-'+lead.id">
+                    <button
+                        type="button"
+                        class="flex w-full items-center justify-between gap-3 rounded-xl border border-dashed border-brand/40 bg-brand-soft/40 px-3 py-2.5 text-left"
+                        @click="adicionarNaRota(lead)"
+                    >
+                        <span class="min-w-0">
+                            <span class="block truncate text-sm font-semibold text-ink" x-text="lead.razao_social || lead.nome"></span>
+                            <span class="block truncate text-xs text-ink-soft" x-text="lead.endereco"></span>
+                        </span>
+                        <span class="shrink-0 text-xs font-semibold text-brand">+ rota</span>
+                    </button>
+                </template>
+            </section>
+
             {{-- Detalhe: sheet no mobile, card estático no desktop --}}
             <div
                 class="pwa-rota-sheet"
@@ -212,7 +237,23 @@
                     </div>
 
                     <p class="text-sm text-ink-soft" x-show="selecionado?.resumo" x-text="selecionado?.resumo"></p>
-                    <p class="text-sm font-medium text-brand-strong" x-show="selecionado?.guia_bolso" x-text="selecionado?.guia_bolso"></p>
+                    <div class="space-y-2 rounded-xl bg-brand-soft/60 p-3" x-show="selecionado?.guia_bolso || selecionado?.guia">
+                        <p class="text-xs font-semibold text-brand">Guia de bolso · <span x-text="selecionado?.guia?.produto || 'Pitch'"></span></p>
+                        <p class="text-sm font-medium text-brand-strong" x-text="selecionado?.guia_bolso || selecionado?.guia?.pitch"></p>
+                        <template x-for="(obj, idx) in (selecionado?.guia?.objecoes || [])" :key="'obj-'+idx">
+                            <details class="rounded-lg bg-white/80 px-3 py-2 text-sm">
+                                <summary class="cursor-pointer font-medium text-ink" x-text="'Objeção: ' + obj.titulo"></summary>
+                                <p class="mt-1 text-ink-soft" x-text="obj.resposta"></p>
+                            </details>
+                        </template>
+                        <a
+                            x-show="selecionado?.guia?.ajuda_url"
+                            :href="selecionado?.guia?.ajuda_url"
+                            target="_blank"
+                            rel="noopener"
+                            class="inline-flex text-sm font-semibold text-brand"
+                        >Ajuda Alterdata →</a>
+                    </div>
                     <p class="text-xs text-ink-faint" x-show="selecionado?.cnpj">ID: <span x-text="selecionado?.cnpj"></span></p>
                 </div>
             </div>

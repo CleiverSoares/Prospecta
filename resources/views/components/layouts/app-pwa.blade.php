@@ -124,11 +124,16 @@
 
     <script>
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.getRegistrations().then((regs) => {
-                    regs.forEach((r) => r.update());
-                });
-                navigator.serviceWorker.register('/sw.js').catch(() => {});
+            window.addEventListener('load', async () => {
+                try {
+                    const regs = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(regs.map((r) => r.unregister()));
+                    if (window.caches) {
+                        const keys = await caches.keys();
+                        await Promise.all(keys.map((k) => caches.delete(k)));
+                    }
+                } catch (e) {}
+                navigator.serviceWorker.register('/sw.js?v=8').catch(() => {});
             });
         }
     </script>

@@ -3,86 +3,103 @@
         'token' => $mapboxToken,
         'styleUrl' => $mapboxStyle,
         'unidades' => $unidadesMapa,
+        'prospectos' => $prospectosMapa,
+        'visitas' => $visitasMapa,
     ];
 @endphp
 
-<x-layouts.admin titulo="Painel">
-    <x-slot:subtitulo>Visão geral da operação</x-slot:subtitulo>
+<x-layouts.admin titulo="Painel" :mapa-full="true">
+    <x-slot:subtitulo>Território ao vivo — camadas e operação do dia</x-slot:subtitulo>
 
-    <div class="mb-5 rounded-lg border border-brand/20 bg-brand-soft px-4 py-3 sm:px-5">
-        <p class="text-sm font-semibold text-brand-strong">Prospecta Admin</p>
-        <p class="mt-0.5 text-sm text-ink-soft">Métricas do dia e território das unidades no mapa.</p>
-    </div>
+    <div
+        class="admin-mapa-stage"
+        x-data="mapaPainel(@js($mapaConfig))"
+    >
+        <div x-ref="mapa" class="admin-mapa-stage__map"></div>
 
-    <div class="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div class="admin-panel rounded-lg p-4">
-            <p class="text-xs font-semibold uppercase tracking-wide text-ink-faint">Unidades</p>
-            <p class="mt-1 text-2xl font-semibold tabular-nums text-ink">{{ $metricas['unidades'] }}</p>
-        </div>
-        <div class="admin-panel rounded-lg p-4">
-            <p class="text-xs font-semibold uppercase tracking-wide text-ink-faint">Usuários</p>
-            <p class="mt-1 text-2xl font-semibold tabular-nums text-ink">{{ $metricas['usuarios'] }}</p>
-        </div>
-        <div class="admin-panel rounded-lg p-4">
-            <p class="text-xs font-semibold uppercase tracking-wide text-ink-faint">Prospectos</p>
-            <p class="mt-1 text-2xl font-semibold tabular-nums text-ink">{{ $metricas['prospectos'] }}</p>
-        </div>
-        <div class="admin-panel rounded-lg p-4">
-            <p class="text-xs font-semibold uppercase tracking-wide text-ink-faint">Visitas hoje</p>
-            <p class="mt-1 text-2xl font-semibold tabular-nums text-ink">{{ $metricas['visitas_hoje'] }}</p>
-        </div>
-    </div>
-
-    <x-admin.painel class="mb-5">
-        <div
-            class="space-y-3"
-            x-data="mapaPainel(@js($mapaConfig))"
-        >
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.12em] text-ink-faint">Território</p>
-                <p class="mt-1 text-sm font-medium text-ink">Mapa das unidades</p>
-                <p class="mt-0.5 text-xs text-ink-soft">Somente leitura — polígonos salvos em cada unidade.</p>
+        <div class="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-wrap items-start justify-between gap-3 p-3 sm:p-4">
+            <div class="pointer-events-auto flex flex-wrap gap-2">
+                <div class="admin-chip">
+                    <span class="admin-chip__label">Unidades</span>
+                    <span class="admin-chip__value">{{ $metricas['unidades'] }}</span>
+                </div>
+                <div class="admin-chip">
+                    <span class="admin-chip__label">Visitas hoje</span>
+                    <span class="admin-chip__value">{{ $metricas['visitas_hoje'] }}</span>
+                </div>
+                <div class="admin-chip">
+                    <span class="admin-chip__label">Conversão</span>
+                    <span class="admin-chip__value">{{ $metricas['conversao'] }}%</span>
+                </div>
+                <div class="admin-chip">
+                    <span class="admin-chip__label">Km est.</span>
+                    <span class="admin-chip__value">{{ $metricas['km_estimado'] }}</span>
+                </div>
+                <div class="admin-chip">
+                    <span class="admin-chip__label">Upsells</span>
+                    <span class="admin-chip__value">{{ $metricas['upsells'] }}</span>
+                </div>
             </div>
 
-            <p
-                class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
-                x-show="erro"
-                x-text="erro"
-                x-cloak
-            ></p>
-
-            <div class="relative min-h-[22rem] overflow-hidden rounded-lg border border-surface-line bg-surface-muted lg:min-h-[28rem]">
-                <div x-ref="mapa" class="absolute inset-0 h-full w-full"></div>
-            </div>
+            <form method="GET" action="{{ route('admin.painel') }}" class="pointer-events-auto flex max-w-full flex-wrap gap-2 rounded-2xl border border-white/50 bg-white/85 p-2 shadow-lg backdrop-blur-md">
+                <select name="unidade_id" class="h-9 rounded-xl border-0 bg-transparent text-xs text-ink focus:ring-0">
+                    <option value="">Unidade</option>
+                    @foreach ($opcoes['unidades'] as $u)
+                        <option value="{{ $u->id }}" @selected(($filtros['unidade_id'] ?? null) == $u->id)>{{ $u->nome }}</option>
+                    @endforeach
+                </select>
+                <select name="gestor_id" class="h-9 rounded-xl border-0 bg-transparent text-xs text-ink focus:ring-0">
+                    <option value="">Gestor</option>
+                    @foreach ($opcoes['gestores'] as $g)
+                        <option value="{{ $g->id }}" @selected(($filtros['gestor_id'] ?? null) == $g->id)>{{ $g->name }}</option>
+                    @endforeach
+                </select>
+                <select name="vendedor_id" class="h-9 rounded-xl border-0 bg-transparent text-xs text-ink focus:ring-0">
+                    <option value="">Vendedor</option>
+                    @foreach ($opcoes['vendedores'] as $v)
+                        <option value="{{ $v->id }}" @selected(($filtros['vendedor_id'] ?? null) == $v->id)>{{ $v->name }}</option>
+                    @endforeach
+                </select>
+                <input type="date" name="de" value="{{ $filtros['de'] }}" class="h-9 rounded-xl border-0 bg-transparent text-xs text-ink focus:ring-0">
+                <input type="date" name="ate" value="{{ $filtros['ate'] }}" class="h-9 rounded-xl border-0 bg-transparent text-xs text-ink focus:ring-0">
+                <button type="submit" class="h-9 rounded-xl bg-brand px-3 text-xs font-semibold text-white">Filtrar</button>
+            </form>
         </div>
-    </x-admin.painel>
 
-    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        @can('unidades.ver')
-            <a href="{{ route('admin.unidades.index') }}" class="admin-panel block rounded-lg p-4 transition hover:border-brand/40 hover:shadow-panel">
-                <p class="text-xs font-semibold uppercase tracking-wide text-ink-faint">Cadastros</p>
-                <p class="mt-1 text-base font-semibold text-ink">Unidades</p>
-                <p class="mt-1 text-sm text-ink-soft">Matriz, filial e representação por faixa de CEP.</p>
-                <p class="mt-3 text-sm font-medium text-brand">Abrir →</p>
-            </a>
-        @endcan
+        <div class="pointer-events-none absolute bottom-4 left-4 z-10 flex flex-wrap gap-2">
+            <button type="button" class="admin-layer-toggle pointer-events-auto" :data-on="camadas.unidades ? '1' : '0'" @click="toggleCamada('unidades')">Unidades</button>
+            <button type="button" class="admin-layer-toggle pointer-events-auto" :data-on="camadas.prospectos ? '1' : '0'" @click="toggleCamada('prospectos')">Prospectos</button>
+            <button type="button" class="admin-layer-toggle pointer-events-auto" :data-on="camadas.visitas ? '1' : '0'" @click="toggleCamada('visitas')">Visitas</button>
+            <button type="button" class="admin-layer-toggle pointer-events-auto" :data-on="camadas.calor ? '1' : '0'" @click="toggleCamada('calor')">Calor</button>
+        </div>
 
-        @can('usuarios.ver')
-            <a href="{{ route('admin.usuarios.index') }}" class="admin-panel block rounded-lg p-4 transition hover:border-brand/40 hover:shadow-panel">
-                <p class="text-xs font-semibold uppercase tracking-wide text-ink-faint">Equipe</p>
-                <p class="mt-1 text-base font-semibold text-ink">Usuários</p>
-                <p class="mt-1 text-sm text-ink-soft">Vincular unidade, gestor e papel Spatie.</p>
-                <p class="mt-3 text-sm font-medium text-brand">Abrir →</p>
-            </a>
-        @endcan
+        <aside class="pointer-events-auto absolute bottom-4 right-4 z-10 w-[min(100%,16rem)] rounded-2xl border border-white/50 bg-white/90 p-3 shadow-lg backdrop-blur-md">
+            <p class="text-xs font-semibold text-ink">Placar do dia</p>
+            <ul class="mt-2 space-y-1.5">
+                @forelse ($placar as $i => $linha)
+                    <li class="flex items-center justify-between text-sm">
+                        <span class="truncate text-ink-soft"><span class="mr-1 font-semibold text-brand">{{ $i + 1 }}.</span>{{ $linha['nome'] }}</span>
+                        <span class="tabular-nums font-semibold text-ink">{{ $linha['checkins'] }}</span>
+                    </li>
+                @empty
+                    <li class="text-xs text-ink-faint">Sem check-ins hoje.</li>
+                @endforelse
+            </ul>
+            <div class="mt-3 flex flex-wrap gap-2 border-t border-surface-line/70 pt-3 text-xs">
+                @can('unidades.ver')
+                    <a href="{{ route('admin.unidades.index') }}" class="font-medium text-brand">Unidades</a>
+                @endcan
+                @can('usuarios.ver')
+                    <a href="{{ route('admin.usuarios.index') }}" class="font-medium text-brand">Equipe</a>
+                @endcan
+            </div>
+        </aside>
 
-        @can('papeis.gerenciar')
-            <a href="{{ route('admin.papeis.index') }}" class="admin-panel block rounded-lg p-4 transition hover:border-brand/40 hover:shadow-panel">
-                <p class="text-xs font-semibold uppercase tracking-wide text-ink-faint">Segurança</p>
-                <p class="mt-1 text-base font-semibold text-ink">Papéis</p>
-                <p class="mt-1 text-sm text-ink-soft">Roles e permissões de acesso (Spatie).</p>
-                <p class="mt-3 text-sm font-medium text-brand">Abrir →</p>
-            </a>
-        @endcan
+        <p
+            class="absolute left-1/2 top-1/2 z-10 max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-900 shadow"
+            x-show="erro"
+            x-text="erro"
+            x-cloak
+        ></p>
     </div>
 </x-layouts.admin>
