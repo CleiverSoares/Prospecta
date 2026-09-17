@@ -1,49 +1,44 @@
-/* Admin — mesma linguagem visual do login (ink + brand) */
+/* Admin enterprise premium — azul Alterdata / densidade Lightning */
 
 .admin-shell {
     background:
-        radial-gradient(ellipse 80% 50% at 0% 0%, rgba(56, 189, 248, 0.12), transparent 55%),
-        radial-gradient(ellipse 60% 40% at 100% 100%, rgba(14, 165, 233, 0.08), transparent 50%),
-        linear-gradient(165deg, #071018 0%, #0b1a2a 45%, #071018 100%);
-}
-
-.admin-grid-soft {
-    background-image:
-        linear-gradient(rgba(56, 189, 248, 0.06) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(56, 189, 248, 0.06) 1px, transparent 1px);
-    background-size: 64px 64px;
-    mask-image: radial-gradient(ellipse at 30% 0%, #000 20%, transparent 70%);
-    pointer-events: none;
-}
-
-@keyframes admin-rise {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.admin-rise {
-    animation: admin-rise 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        radial-gradient(800px 320px at 0% 0%, rgba(0, 131, 193, 0.06), transparent 55%),
+        #f4f6f9;
 }
 
 .admin-panel {
-    border: 1px solid rgba(56, 189, 248, 0.14);
-    background: rgba(11, 26, 42, 0.72);
-    backdrop-filter: blur(12px);
-    box-shadow: 0 0 0 1px rgba(7, 16, 24, 0.4), 0 24px 48px rgba(0, 0, 0, 0.35);
+    border: 1px solid #e5eaf0;
+    background: #ffffff;
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.9) inset,
+        0 1px 2px rgba(27, 35, 41, 0.04),
+        0 8px 24px rgba(27, 35, 41, 0.04);
 }
 
 .admin-nav-link {
-    transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease;
+    position: relative;
+    transition: background 120ms ease, color 120ms ease;
 }
 
 .admin-nav-link[data-ativo="1"] {
-    background: linear-gradient(135deg, #38bdf8, #0ea5e9);
-    color: #071018;
-    box-shadow: 0 8px 24px rgba(14, 165, 233, 0.35);
+    background: #e6f4fb;
+    color: #006ea3;
+    font-weight: 600;
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .admin-rise {
-        animation: none !important;
-    }
+.admin-nav-link[data-ativo="1"]::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    bottom: 6px;
+    width: 3px;
+    border-radius: 0 2px 2px 0;
+    background: #0083c1;
+}
+
+.admin-sidebar-brand {
+    background:
+        linear-gradient(145deg, #0083c1 0%, #006ea3 100%);
+    box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.08);
 }

@@ -13,19 +13,27 @@ export default {
         extend: {
             colors: {
                 brand: {
-                    DEFAULT: '#38bdf8',
-                    strong: '#0ea5e9',
-                    soft: 'rgba(56, 189, 248, 0.28)',
+                    DEFAULT: '#0083C1',
+                    strong: '#006EA3',
+                    soft: '#E6F4FB',
+                    muted: '#4BA3D1',
+                },
+                surface: {
+                    DEFAULT: '#FFFFFF',
+                    muted: '#F4F6F9',
+                    line: '#E5EAF0',
                 },
                 ink: {
-                    DEFAULT: '#071018',
-                    2: '#0b1a2a',
+                    DEFAULT: '#1B2329',
+                    soft: '#5B6B79',
+                    faint: '#8A98A6',
                 },
-                paper: '#e8f1f5',
             },
             fontFamily: {
-                sans: ['Manrope', ...defaultTheme.fontFamily.sans],
-                display: ['Syne', ...defaultTheme.fontFamily.sans],
+                sans: ['"IBM Plex Sans"', ...defaultTheme.fontFamily.sans],
+            },
+            boxShadow: {
+                panel: '0 1px 2px rgba(27, 35, 41, 0.06), 0 1px 3px rgba(27, 35, 41, 0.04)',
             },
         },
     },

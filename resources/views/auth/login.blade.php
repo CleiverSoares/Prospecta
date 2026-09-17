@@ -3,7 +3,12 @@
         <x-auth.marca />
     </x-slot:marca>
 
-    <x-auth-session-status class="mb-4 text-sm text-emerald-400" :status="session('status')" />
+    <div class="mb-6">
+        <h2 class="text-xl font-semibold tracking-tight text-ink">Entrar</h2>
+        <p class="mt-1 text-sm text-ink-soft">Acesse com o e-mail corporativo.</p>
+    </div>
+
+    <x-auth-session-status class="mb-4 text-sm text-emerald-700" :status="session('status')" />
 
     <form method="POST" action="{{ route('login') }}" class="space-y-4">
         @csrf
@@ -34,17 +39,17 @@
             </x-slot:acao>
         </x-auth.campo>
 
-        <label class="flex items-center gap-2.5 pt-1 text-sm text-paper/75">
+        <label class="flex items-center gap-2 text-sm text-ink-soft">
             <input
                 id="remember_me"
                 type="checkbox"
                 name="remember"
-                class="size-4 rounded border-white/20 bg-ink text-brand focus:ring-brand/40"
+                class="size-4 rounded border-surface-line text-brand focus:ring-brand/30"
             >
             <span>Manter conectado</span>
         </label>
 
-        <div class="pt-2">
+        <div class="pt-1">
             <x-auth.botao-primario>Entrar</x-auth.botao-primario>
         </div>
     </form>

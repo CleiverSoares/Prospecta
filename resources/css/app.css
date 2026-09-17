@@ -1,5 +1,6 @@
 @import 'auth.css';
 @import 'admin.css';
+@import 'app-pwa.css';
 
 @tailwind base;
 @tailwind components;
@@ -7,15 +8,14 @@
 
 @layer base {
     :root {
-        --brand: #38bdf8;
-        --brand-strong: #0ea5e9;
-        --brand-soft: rgba(56, 189, 248, 0.28);
-        --ink: #071018;
-        --ink-2: #0b1a2a;
-        --paper: #e8f1f5;
-        --mist: rgba(232, 241, 245, 0.72);
-        --danger: #fb7185;
-        --line: rgba(56, 189, 248, 0.16);
+        --brand: #0083c1;
+        --brand-strong: #006ea3;
+        --brand-soft: #e6f4fb;
+        --ink: #1b2329;
+        --ink-soft: #5b6b79;
+        --surface: #ffffff;
+        --surface-muted: #f4f6f9;
+        --line: #e5eaf0;
     }
 
     html {
@@ -23,7 +23,7 @@
     }
 
     body {
-        @apply bg-[color:var(--ink)] font-sans text-[color:var(--paper)];
+        @apply bg-surface-muted font-sans text-ink;
     }
 
     [x-cloak] {

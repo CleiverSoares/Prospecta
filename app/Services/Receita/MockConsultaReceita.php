@@ -21,6 +21,20 @@ class MockConsultaReceita implements ConsultaReceitaInterface
             'lat' => -19.9245,
             'lng' => -43.9352,
         ],
+        '22333444000192' => [
+            'razao_social' => 'Café Savassi ME',
+            'cep' => '30112000',
+            'status_receita' => 'ATIVA',
+            'lat' => -19.9388,
+            'lng' => -43.9378,
+        ],
+        '33444555000103' => [
+            'razao_social' => 'Mercado Funcionários LTDA',
+            'cep' => '30140071',
+            'status_receita' => 'ATIVA',
+            'lat' => -19.9330,
+            'lng' => -43.9220,
+        ],
         '99888777000166' => [
             'razao_social' => 'Tech Paulista SA',
             'cep' => '01310100',

@@ -1,0 +1,137 @@
+@props([
+    'titulo' => 'Prospecta',
+    'passo' => null,
+])
+
+@php
+    $passos = [
+        [
+            'id' => 'setup',
+            'rotulo' => 'Setup',
+            'rota' => 'app.setup',
+            'icone' => 'setup',
+        ],
+        [
+            'id' => 'area',
+            'rotulo' => 'Área',
+            'rota' => 'app.area',
+            'icone' => 'area',
+        ],
+        [
+            'id' => 'rota',
+            'rotulo' => 'Rota',
+            'rota' => 'app.rota',
+            'icone' => 'rota',
+        ],
+        [
+            'id' => 'checkin',
+            'rotulo' => 'Check-in',
+            'rota' => 'app.checkin',
+            'icone' => 'checkin',
+        ],
+    ];
+@endphp
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="{{ config('prospecta.pwa.theme_color', '#0083C1') }}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{{ $titulo }} — {{ config('prospecta.pwa.nome', 'Prospecta') }}</title>
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=ibm-plex-sans:400,500,600,700&display=swap" rel="stylesheet">
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    {{ $head ?? '' }}
+</head>
+<body class="min-h-dvh font-sans text-ink antialiased">
+    <div class="pwa-shell min-h-dvh lg:flex">
+        <aside class="hidden w-64 shrink-0 flex-col border-r border-surface-line bg-white lg:flex">
+            <div class="border-b border-brand-strong/20 bg-gradient-to-br from-brand to-brand-strong px-5 py-4">
+                <p class="text-lg font-semibold text-white">Prospecta</p>
+                <p class="text-xs text-white/80">Campo · vendedor</p>
+            </div>
+            <nav class="pwa-nav-side flex flex-1 flex-col gap-1 p-3" aria-label="Fluxo do dia">
+                @foreach ($passos as $item)
+                    <a
+                        href="{{ route($item['rota']) }}"
+                        data-ativo="{{ ($passo ?? '') === $item['id'] ? '1' : '0' }}"
+                        class="pwa-step relative px-3 py-2.5 text-sm text-ink-soft hover:bg-surface-muted hover:text-ink"
+                    >{{ $item['rotulo'] }}</a>
+                @endforeach
+            </nav>
+            <div class="border-t border-surface-line p-4">
+                <p class="truncate text-sm font-medium text-ink">{{ auth()->user()?->name }}</p>
+                <form method="POST" action="{{ route('logout') }}" class="mt-2">
+                    @csrf
+                    <button type="submit" class="text-sm font-medium text-brand hover:text-brand-strong">Sair</button>
+                </form>
+            </div>
+        </aside>
+
+        <div class="flex min-w-0 flex-1 flex-col pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] lg:pb-0">
+            <header class="sticky top-0 z-20 border-b border-surface-line bg-white/95 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-sm sm:px-6 lg:px-8">
+                <p class="text-xs font-semibold uppercase tracking-[0.14em] text-brand lg:hidden">Prospecta</p>
+                <div class="flex flex-wrap items-end justify-between gap-2">
+                    <div>
+                        <h1 class="mt-1 text-xl font-semibold tracking-tight text-ink sm:text-2xl">{{ $titulo }}</h1>
+                        @isset($subtitulo)
+                            <p class="mt-0.5 text-sm text-ink-soft">{{ $subtitulo }}</p>
+                        @endisset
+                    </div>
+                    @isset($acoes)
+                        <div class="flex flex-wrap gap-2">{{ $acoes }}</div>
+                    @endisset
+                </div>
+            </header>
+
+            <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
+                {{ $slot }}
+            </main>
+        </div>
+
+        {{-- Tab bar estilo app --}}
+        <nav class="pwa-tabbar lg:hidden" aria-label="Fluxo do dia">
+            <div class="pwa-tabbar-inner">
+                @foreach ($passos as $item)
+                    @php $ativo = ($passo ?? '') === $item['id']; @endphp
+                    <a
+                        href="{{ route($item['rota']) }}"
+                        class="pwa-tab {{ $ativo ? 'is-active' : '' }}"
+                        data-ativo="{{ $ativo ? '1' : '0' }}"
+                    >
+                        <span class="pwa-tab-icon" aria-hidden="true">
+                            @if ($item['icone'] === 'setup')
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+                            @elseif ($item['icone'] === 'area')
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/><path d="M8 11h6M11 8v6"/></svg>
+                            @elseif ($item['icone'] === 'rota')
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h6a4 4 0 0 0 0-8H8a4 4 0 0 1 0-8h8"/></svg>
+                            @else
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-4.5 7-11a7 7 0 1 0-14 0c0 6.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                            @endif
+                        </span>
+                        <span class="pwa-tab-label">{{ $item['rotulo'] }}</span>
+                    </a>
+                @endforeach
+            </div>
+        </nav>
+    </div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.getRegistrations().then((regs) => {
+                    regs.forEach((r) => r.update());
+                });
+                navigator.serviceWorker.register('/sw.js').catch(() => {});
+            });
+        }
+    </script>
+    {{ $scripts ?? '' }}
+</body>
+</html>

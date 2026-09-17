@@ -34,7 +34,7 @@ class MiddlewarePermissoesTest extends TestCase
 
         $this->actingAs($vendedor)
             ->get(route('app.inicio'))
-            ->assertOk();
+            ->assertRedirect(route('app.setup'));
     }
 
     public function test_adm_acessa_admin_e_app(): void
@@ -48,6 +48,6 @@ class MiddlewarePermissoesTest extends TestCase
 
         $this->actingAs($adm)
             ->get(route('app.inicio'))
-            ->assertOk();
+            ->assertRedirect(route('app.setup'));
     }
 }

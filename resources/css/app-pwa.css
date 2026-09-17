@@ -1,0 +1,268 @@
+/* PWA vendedor — mobile app + desktop estável */
+
+.pwa-shell {
+    background:
+        radial-gradient(700px 280px at 10% 0%, rgba(0, 131, 193, 0.08), transparent 55%),
+        #f4f6f9;
+}
+
+/* ---- Botões app ---- */
+.pwa-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3rem;
+    width: 100%;
+    padding: 0 1rem;
+    border-radius: 0.9rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    line-height: 1.2;
+    transition: transform 0.12s ease, background 0.12s ease, opacity 0.12s ease;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+.pwa-btn:active {
+    transform: scale(0.98);
+}
+
+.pwa-btn:disabled,
+.pwa-btn[disabled] {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+.pwa-btn-primary {
+    background: #0083c1;
+    color: #fff;
+    box-shadow: 0 6px 16px rgba(0, 131, 193, 0.28);
+}
+
+.pwa-btn-primary:hover {
+    background: #006ea3;
+}
+
+.pwa-btn-secondary {
+    background: #e6f4fb;
+    color: #006ea3;
+    border: 1px solid rgba(0, 131, 193, 0.22);
+}
+
+.pwa-btn-ghost {
+    background: #fff;
+    color: #1e293b;
+    border: 1px solid #e2e8f0;
+}
+
+.pwa-btn-danger {
+    background: #fff1f2;
+    color: #be123c;
+    border: 1px solid #fecdd3;
+}
+
+.pwa-btn-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+}
+
+.pwa-btn-row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+}
+
+@media (min-width: 640px) {
+    .pwa-btn-row-3 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .pwa-btn.sm\:w-auto {
+        width: auto;
+    }
+}
+
+/* ---- Tab bar inferior (só mobile) ---- */
+.pwa-tabbar {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 50;
+    padding: 0 0.75rem calc(0.55rem + env(safe-area-inset-bottom, 0px));
+    pointer-events: none;
+}
+
+.pwa-tabbar-inner {
+    pointer-events: auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.15rem;
+    max-width: 28rem;
+    margin: 0 auto;
+    padding: 0.4rem;
+    border-radius: 1.35rem;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    box-shadow:
+        0 10px 30px rgba(15, 23, 42, 0.12),
+        0 1px 0 rgba(255, 255, 255, 0.8) inset;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+.pwa-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    min-height: 3.35rem;
+    border-radius: 1rem;
+    padding: 0.35rem 0.25rem;
+    color: #64748b;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
+}
+
+.pwa-tab:active {
+    transform: scale(0.96);
+}
+
+.pwa-tab-icon {
+    display: flex;
+    width: 1.45rem;
+    height: 1.45rem;
+}
+
+.pwa-tab-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.pwa-tab-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    line-height: 1;
+}
+
+.pwa-tab.is-active {
+    color: #0083c1;
+    background: #e6f4fb;
+}
+
+.pwa-tab.is-active .pwa-tab-icon {
+    filter: drop-shadow(0 2px 4px rgba(0, 131, 193, 0.25));
+}
+
+/* Sidebar desktop */
+.pwa-step[data-ativo="1"] {
+    color: #006ea3;
+    font-weight: 600;
+}
+
+.pwa-nav-side .pwa-step[data-ativo="1"] {
+    background: #e6f4fb;
+    border-radius: 0.5rem;
+}
+
+.pwa-nav-side .pwa-step[data-ativo="1"]::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 8px;
+    bottom: 8px;
+    width: 3px;
+    border-radius: 0 2px 2px 0;
+    background: #0083c1;
+}
+
+.pwa-map {
+    min-height: 16rem;
+    height: min(48vh, 22rem);
+}
+
+.pwa-rota-mapa-el {
+    height: min(48vh, 22rem);
+    min-height: 16rem;
+}
+
+.pwa-rota-strip {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.pwa-rota-strip::-webkit-scrollbar {
+    display: none;
+}
+
+.pwa-rota-strip-card {
+    scroll-snap-align: start;
+}
+
+.pwa-rota-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: rgba(15, 23, 42, 0.35);
+}
+
+/* Sheet só no mobile; no desktop vira card normal */
+.pwa-rota-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    z-index: 40;
+    max-height: min(62vh, 520px);
+    overflow-y: auto;
+    border-radius: 1.25rem 1.25rem 0 0;
+    border: 1px solid #e2e8f0;
+    border-bottom: 0;
+    background: #fff;
+    padding: 0.75rem 1rem 1.25rem;
+    box-shadow: 0 -12px 40px rgba(15, 23, 42, 0.14);
+}
+
+.pwa-rota-sheet-handle {
+    width: 2.5rem;
+    height: 0.28rem;
+    margin: 0.15rem auto 0.85rem;
+    border-radius: 999px;
+    background: #cbd5e1;
+}
+
+@media (min-width: 1024px) {
+    .pwa-map,
+    .pwa-rota-mapa-el {
+        height: min(68vh, 620px);
+        min-height: 28rem;
+    }
+
+    .pwa-rota-sheet {
+        position: static;
+        left: auto;
+        right: auto;
+        bottom: auto;
+        z-index: auto;
+        max-height: none;
+        overflow: visible;
+        border-radius: 0.9rem;
+        border: 1px solid rgba(0, 131, 193, 0.28);
+        border-bottom: 1px solid rgba(0, 131, 193, 0.28);
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        padding: 1rem;
+        margin-top: 0.25rem;
+    }
+
+    .pwa-rota-backdrop {
+        display: none !important;
+    }
+
+    .pwa-shell {
+        padding-bottom: 0;
+    }
+}

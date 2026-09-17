@@ -12,6 +12,25 @@ class ProspectoRepository
         return Prospecto::query()->where('cnpj', $cnpj)->first();
     }
 
+    public function upsertPorGooglePlace(string $placeId, array $dados): Prospecto
+    {
+        return Prospecto::query()->updateOrCreate(
+            ['google_place_id' => $placeId],
+            $dados
+        );
+    }
+
+    public function buscarPorIds(array $ids): Collection
+    {
+        if ($ids === []) {
+            return new Collection;
+        }
+
+        return Prospecto::query()
+            ->whereIn('id', $ids)
+            ->get();
+    }
+
     public function buscarPorCep(string $cep): Collection
     {
         return Prospecto::query()->where('cep', $cep)->get();

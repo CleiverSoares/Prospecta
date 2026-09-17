@@ -16,11 +16,21 @@ return [
     ],
 
     'google' => [
-        'places_api_key' => env('GOOGLE_PLACES_API_KEY'),
+        'maps_api_key' => env('GOOGLE_MAPS_API_KEY'),
+        'places_api_key' => env('GOOGLE_PLACES_API_KEY', env('GOOGLE_MAPS_API_KEY')),
         'directions_base_url' => env(
             'GOOGLE_MAPS_DIRECTIONS_BASE_URL',
             'https://www.google.com/maps/dir/'
         ),
+    ],
+
+    'viacep' => [
+        'url_base' => env('VIACEP_URL_BASE', 'https://viacep.com.br/ws'),
+    ],
+
+    'rota' => [
+        'faixa_lng' => (float) env('ROTA_FAIXA_LNG', 0.004),
+        'janela_ouro' => (int) env('ROTA_JANELA_OURO', 12),
     ],
 
     'receita_ws' => [
@@ -32,7 +42,7 @@ return [
 
     'pwa' => [
         'nome' => env('PWA_NOME', env('APP_NAME', 'Prospecta')),
-        'theme_color' => env('PWA_THEME_COLOR', '#0f172a'),
+        'theme_color' => env('PWA_THEME_COLOR', '#0083C1'),
         'background_color' => env('PWA_BACKGROUND_COLOR', '#ffffff'),
     ],
 
