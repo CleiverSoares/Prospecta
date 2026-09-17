@@ -11,6 +11,18 @@ export default {
 
     theme: {
         extend: {
+            colors: {
+                brand: {
+                    DEFAULT: '#38bdf8',
+                    strong: '#0ea5e9',
+                    soft: 'rgba(56, 189, 248, 0.28)',
+                },
+                ink: {
+                    DEFAULT: '#071018',
+                    2: '#0b1a2a',
+                },
+                paper: '#e8f1f5',
+            },
             fontFamily: {
                 sans: ['Manrope', ...defaultTheme.fontFamily.sans],
                 display: ['Syne', ...defaultTheme.fontFamily.sans],
