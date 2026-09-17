@@ -20,7 +20,6 @@
 
     <main class="auth-stage">
         <section class="auth-brand">
-            <p class="auth-kicker">Field sales · território</p>
             <h1 class="auth-logo">Prospecta</h1>
             <p class="auth-tagline">Prospecção de campo com território sob controle.</p>
         </section>
