@@ -6,11 +6,12 @@ use App\Models\Unidade;
 use App\Models\User;
 use Database\Seeders\PapeisEPermissoesSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\ComSetupDiario;
 use Tests\TestCase;
 
 class ProspectoBuscaApiTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, ComSetupDiario;
 
     protected function setUp(): void
     {
@@ -29,6 +30,7 @@ class ProspectoBuscaApiTest extends TestCase
         $vendedor->assignRole('vendedor');
 
         $this->actingAs($vendedor)
+            ->withSession($this->sessionSetup())
             ->postJson(route('app.prospectos.buscar'), ['cnpj' => '11222333000181'])
             ->assertOk()
             ->assertJsonPath('prospecto.razao_social', 'Padaria Central LTDA')
