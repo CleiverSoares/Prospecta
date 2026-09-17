@@ -13,11 +13,13 @@
     <link href="https://fonts.bunny.net/css?family=syne:700,800|manrope:400,500,600,700&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-dvh bg-[#f4f7fa] font-sans text-slate-900 antialiased">
-    <div class="flex min-h-dvh">
+<body class="min-h-dvh font-sans text-paper antialiased">
+    <div class="admin-shell relative flex min-h-dvh">
+        <div class="admin-grid-soft absolute inset-0" aria-hidden="true"></div>
+
         <x-admin.sidebar />
 
-        <div class="flex min-w-0 flex-1 flex-col">
+        <div class="relative z-10 flex min-w-0 flex-1 flex-col">
             <x-admin.topo
                 :titulo="$titulo"
                 :subtitulo="isset($subtitulo) ? $subtitulo : null"
@@ -29,9 +31,9 @@
                 @endisset
             </x-admin.topo>
 
-            <main class="admin-rise flex-1 px-4 py-6 sm:px-8">
+            <main class="admin-rise flex-1 px-4 py-6 sm:px-8 lg:px-10">
                 @if (session('status'))
-                    <p class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">
+                    <p class="mb-5 rounded-xl border border-brand/30 bg-brand/10 px-4 py-3 text-sm text-paper" role="status">
                         {{ session('status') }}
                     </p>
                 @endif

@@ -3,53 +3,53 @@
     'subtitulo' => null,
 ])
 
-<header class="border-b border-slate-200/80 bg-white/90 backdrop-blur-sm">
-    <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-8">
+<header class="relative z-10 border-b border-brand/10 bg-ink/40 backdrop-blur-md">
+    <div class="flex flex-wrap items-end justify-between gap-4 px-4 py-5 sm:px-8 lg:px-10">
         <div class="min-w-0">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400 lg:hidden">Prospecta</p>
-            <h1 class="truncate font-display text-2xl font-bold tracking-tight text-slate-900">
+            <p class="font-display text-xl font-extrabold tracking-tight text-paper lg:hidden">Prospecta</p>
+            <h1 class="mt-1 truncate font-display text-3xl font-extrabold tracking-tight text-paper sm:text-4xl">
                 {{ $titulo }}
             </h1>
             @if ($subtitulo)
-                <p class="mt-1 text-sm text-slate-500">{{ $subtitulo }}</p>
+                <p class="mt-2 max-w-xl text-sm text-paper/50">{{ $subtitulo }}</p>
             @endif
         </div>
 
         @isset($acoes)
-            <div class="flex flex-wrap items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2 pb-1">
                 {{ $acoes }}
             </div>
         @endisset
     </div>
 
-    <nav class="flex gap-1 overflow-x-auto border-t border-slate-100 px-2 py-2 lg:hidden" aria-label="Navegação admin">
+    <nav class="flex gap-1 overflow-x-auto border-t border-brand/10 px-2 py-2 lg:hidden" aria-label="Navegação admin">
         @can('admin.acessar')
             <a
                 href="{{ route('admin.painel') }}"
+                data-ativo="{{ request()->routeIs('admin.painel') ? '1' : '0' }}"
                 @class([
-                    'whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium',
-                    'bg-brand/15 text-slate-900' => request()->routeIs('admin.painel'),
-                    'text-slate-600 hover:bg-slate-100' => ! request()->routeIs('admin.painel'),
+                    'admin-nav-link whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold',
+                    'text-paper/60' => ! request()->routeIs('admin.painel'),
                 ])
             >Painel</a>
         @endcan
         @can('unidades.ver')
             <a
                 href="{{ route('admin.unidades.index') }}"
+                data-ativo="{{ request()->routeIs('admin.unidades.*') ? '1' : '0' }}"
                 @class([
-                    'whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium',
-                    'bg-brand/15 text-slate-900' => request()->routeIs('admin.unidades.*'),
-                    'text-slate-600 hover:bg-slate-100' => ! request()->routeIs('admin.unidades.*'),
+                    'admin-nav-link whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold',
+                    'text-paper/60' => ! request()->routeIs('admin.unidades.*'),
                 ])
             >Unidades</a>
         @endcan
         @can('papeis.gerenciar')
             <a
                 href="{{ route('admin.papeis.index') }}"
+                data-ativo="{{ request()->routeIs('admin.papeis.*') ? '1' : '0' }}"
                 @class([
-                    'whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium',
-                    'bg-brand/15 text-slate-900' => request()->routeIs('admin.papeis.*'),
-                    'text-slate-600 hover:bg-slate-100' => ! request()->routeIs('admin.papeis.*'),
+                    'admin-nav-link whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold',
+                    'text-paper/60' => ! request()->routeIs('admin.papeis.*'),
                 ])
             >Papéis</a>
         @endcan

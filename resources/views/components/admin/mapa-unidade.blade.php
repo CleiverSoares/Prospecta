@@ -20,14 +20,14 @@
 >
     <div class="flex flex-wrap items-end justify-between gap-2">
         <div>
-            <p class="text-sm font-medium text-slate-700">Território no mapa</p>
-            <p class="text-xs text-slate-500">Desenhe o polígono — os CEPs são estimados automaticamente.</p>
+            <p class="text-sm font-semibold text-paper/70">Território no mapa</p>
+            <p class="text-xs text-paper/40">Opcional — desenhe para estimar CEPs. A regra de negócio usa o intervalo.</p>
         </div>
-        <p class="text-xs text-slate-500" x-text="status" x-show="status" x-cloak></p>
+        <p class="text-xs text-brand/80" x-text="status" x-show="status" x-cloak></p>
     </div>
 
     <p
-        class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+        class="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200"
         x-show="erro"
         x-text="erro"
         x-cloak
@@ -35,7 +35,7 @@
 
     <div
         x-ref="mapa"
-        class="h-72 w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 sm:h-96"
+        class="h-72 w-full overflow-hidden rounded-2xl border border-brand/20 bg-ink/80 sm:h-96"
     ></div>
 
     <input
