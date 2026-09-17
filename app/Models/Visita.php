@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Enums\StatusVisita;
+use Database\Factories\VisitaFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -18,6 +20,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 ])]
 class Visita extends Model
 {
+    /** @use HasFactory<VisitaFactory> */
+    use HasFactory;
+
     protected function casts(): array
     {
         return [
