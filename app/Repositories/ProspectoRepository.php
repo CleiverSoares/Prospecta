@@ -48,4 +48,16 @@ class ProspectoRepository
             $dados
         );
     }
+
+    public function buscarPorId(int $id): ?Prospecto
+    {
+        return Prospecto::query()->find($id);
+    }
+
+    public function atualizar(Prospecto $prospecto, array $dados): Prospecto
+    {
+        $prospecto->update($dados);
+
+        return $prospecto->fresh();
+    }
 }

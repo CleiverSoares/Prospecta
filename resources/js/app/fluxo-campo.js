@@ -743,7 +743,9 @@ export function registrarFluxoCampo(Alpine) {
 
     Alpine.data('checkinCampo', (config) => ({
         storeUrl: config.storeUrl,
+        receitaUrl: config.receitaUrl,
         csrf: config.csrf,
+        receitaDriver: config.receitaDriver || 'mock',
         itens: [],
         atual: null,
         status: 'FEITA',
@@ -758,6 +760,9 @@ export function registrarFluxoCampo(Alpine) {
         erro: '',
         upsellAck: false,
         objecaoAberta: null,
+        cnpjConsulta: '',
+        consultandoReceita: false,
+        receitaMsg: '',
         mapa: null,
         carroMarker: null,
         pinMarker: null,
@@ -769,6 +774,9 @@ export function registrarFluxoCampo(Alpine) {
         init() {
             this.itens = JSON.parse(localStorage.getItem('prospecta.rota') || '[]');
             this.atual = this.itens[0] || null;
+            if (this.atual?.cnpj && !String(this.atual.cnpj).startsWith('G')) {
+                this.cnpjConsulta = this.atual.cnpj;
+            }
             if (this.atual?.is_cliente) {
                 this.msg = 'Cliente base — veja a oportunidade de upsell no guia antes de finalizar.';
             }
@@ -776,6 +784,45 @@ export function registrarFluxoCampo(Alpine) {
                 this.iniciarMapa();
                 this.carregarGps();
             }));
+        },
+
+        async consultarReceita() {
+            if (!this.receitaUrl || !this.cnpjConsulta) {
+                this.receitaMsg = 'Informe um CNPJ.';
+                return;
+            }
+            this.consultandoReceita = true;
+            this.receitaMsg = '';
+            try {
+                const res = await fetch(this.receitaUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': this.csrf,
+                    },
+                    body: JSON.stringify({
+                        cnpj: this.cnpjConsulta,
+                        prospecto_id: this.atual?.id || null,
+                    }),
+                });
+                const dados = await res.json();
+                if (!res.ok) {
+                    this.receitaMsg = dados.motivo || dados.message || dados.errors?.cnpj?.[0] || 'Consulta bloqueada/falhou.';
+                    return;
+                }
+                this.receitaMsg = `${dados.dados?.razao_social || 'OK'} · ${dados.dados?.status_receita || ''}`;
+                if (dados.prospecto && this.atual) {
+                    Object.assign(this.atual, dados.prospecto);
+                    const idx = this.itens.findIndex((i) => i.id === this.atual.id);
+                    if (idx >= 0) this.itens[idx] = { ...this.itens[idx], ...dados.prospecto };
+                    localStorage.setItem('prospecta.rota', JSON.stringify(this.itens));
+                }
+            } catch (e) {
+                this.receitaMsg = e.message || 'Erro na consulta.';
+            } finally {
+                this.consultandoReceita = false;
+            }
         },
 
         aguardarMaps(cb, n = 40) {

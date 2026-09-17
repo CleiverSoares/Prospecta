@@ -12,6 +12,10 @@ use Illuminate\Support\Collection;
 
 class PainelService
 {
+    public function __construct(
+        private readonly LocalizacaoService $localizacaoService,
+    ) {}
+
     /**
      * @param  array{unidade_id?: int|null, gestor_id?: int|null, vendedor_id?: int|null, de?: string|null, ate?: string|null, segmento?: string|null}  $filtros
      * @return array{
@@ -19,6 +23,7 @@ class PainelService
      *     unidadesMapa: Collection<int, array<string, mixed>>,
      *     prospectosMapa: list<array<string, mixed>>,
      *     visitasMapa: list<array<string, mixed>>,
+     *     aoVivo: list<array<string, mixed>>,
      *     placar: list<array{nome: string, checkins: int}>,
      *     filtros: array<string, mixed>,
      *     opcoes: array{unidades: Collection, gestores: Collection, vendedores: Collection}
@@ -128,6 +133,12 @@ class PainelService
             'unidadesMapa' => $unidadesMapa,
             'prospectosMapa' => $prospectosMapa,
             'visitasMapa' => $visitasMapa,
+            'aoVivo' => $this->localizacaoService->aoVivo(
+                $unidadeId,
+                $gestorId,
+                $vendedorId,
+                (int) config('prospecta.tracking.janela_minutos', 15),
+            ),
             'placar' => $placar,
             'filtros' => [
                 'unidade_id' => $unidadeId,

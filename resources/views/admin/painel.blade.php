@@ -5,6 +5,10 @@
         'unidades' => $unidadesMapa,
         'prospectos' => $prospectosMapa,
         'visitas' => $visitasMapa,
+        'aoVivo' => $aoVivo ?? [],
+        'aoVivoUrl' => route('admin.localizacoes.ao-vivo'),
+        'filtros' => $filtros,
+        'janelaMinutos' => (int) config('prospecta.tracking.janela_minutos', 15),
     ];
 @endphp
 
@@ -71,6 +75,7 @@
             <button type="button" class="admin-layer-toggle pointer-events-auto" :data-on="camadas.prospectos ? '1' : '0'" @click="toggleCamada('prospectos')">Prospectos</button>
             <button type="button" class="admin-layer-toggle pointer-events-auto" :data-on="camadas.visitas ? '1' : '0'" @click="toggleCamada('visitas')">Visitas</button>
             <button type="button" class="admin-layer-toggle pointer-events-auto" :data-on="camadas.calor ? '1' : '0'" @click="toggleCamada('calor')">Calor</button>
+            <button type="button" class="admin-layer-toggle pointer-events-auto" :data-on="camadas.aoVivo ? '1' : '0'" @click="toggleCamada('aoVivo')">Ao vivo</button>
         </div>
 
         <aside class="pointer-events-auto absolute bottom-4 right-4 z-10 w-[min(100%,16rem)] rounded-2xl border border-white/50 bg-white/90 p-3 shadow-lg backdrop-blur-md">

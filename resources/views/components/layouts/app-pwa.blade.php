@@ -123,6 +123,45 @@
     </div>
 
     <script>
+        window.prospectaTracking = {
+            url: @js(route('app.localizacao.store')),
+            csrf: @js(csrf_token()),
+            intervaloMs: @js((int) config('prospecta.tracking.intervalo_ms', 12000)),
+        };
+
+        (function iniciarTrackingCampo() {
+            const cfg = window.prospectaTracking;
+            if (!cfg?.url || !navigator.geolocation) return;
+
+            let ultimoEnvio = 0;
+            const enviar = (pos) => {
+                const agora = Date.now();
+                if (agora - ultimoEnvio < cfg.intervaloMs) return;
+                ultimoEnvio = agora;
+                fetch(cfg.url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': cfg.csrf,
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude,
+                        precisao: pos.coords.accuracy ?? null,
+                        velocidade: pos.coords.speed != null && pos.coords.speed >= 0 ? pos.coords.speed : null,
+                        direcao: pos.coords.heading != null && pos.coords.heading >= 0 ? pos.coords.heading : null,
+                    }),
+                }).catch(() => {});
+            };
+
+            navigator.geolocation.watchPosition(enviar, () => {}, {
+                enableHighAccuracy: true,
+                maximumAge: 5000,
+            });
+        })();
+
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', async () => {
                 try {
@@ -133,7 +172,7 @@
                         await Promise.all(keys.map((k) => caches.delete(k)));
                     }
                 } catch (e) {}
-                navigator.serviceWorker.register('/sw.js?v=8').catch(() => {});
+                navigator.serviceWorker.register('/sw.js?v=9').catch(() => {});
             });
         }
     </script>

@@ -1,7 +1,9 @@
 @php
     $config = [
         'storeUrl' => route('app.visitas.store'),
+        'receitaUrl' => route('app.receita.consultar'),
         'csrf' => csrf_token(),
+        'receitaDriver' => config('prospecta.receita_ws.driver'),
     ];
 @endphp
 
@@ -57,6 +59,16 @@
                             <input type="checkbox" class="mt-1 rounded border-amber-400 text-brand" x-model="upsellAck">
                             <span>Li a oportunidade de upsell e posso iniciar o check-in.</span>
                         </label>
+                    </div>
+
+                    <div class="space-y-2 rounded-xl border border-surface-line bg-surface-muted/50 px-3 py-3">
+                        <p class="text-sm font-semibold text-ink">Receita (CNPJ)</p>
+                        <p class="text-xs text-ink-faint">Driver: <span x-text="receitaDriver"></span> — use http + token no .env para consulta real.</p>
+                        <div class="flex gap-2">
+                            <input type="text" x-model="cnpjConsulta" placeholder="00.000.000/0001-00" class="h-10 flex-1 rounded-md border border-surface-line px-3 text-sm">
+                            <button type="button" class="pwa-btn pwa-btn-secondary shrink-0" @click="consultarReceita()" :disabled="consultandoReceita" x-text="consultandoReceita ? '…' : 'Consultar'"></button>
+                        </div>
+                        <p class="text-sm text-ink-soft" x-show="receitaMsg" x-text="receitaMsg" x-cloak></p>
                     </div>
 
                     <p

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\IntegracoesController;
+use App\Http\Controllers\Admin\LocalizacaoAoVivoController;
 use App\Http\Controllers\Admin\PainelController;
 use App\Http\Controllers\Admin\PapelController;
 use App\Http\Controllers\Admin\UnidadeController;
@@ -9,8 +10,10 @@ use App\Http\Controllers\App\AreaController;
 use App\Http\Controllers\App\CercaController;
 use App\Http\Controllers\App\CheckinController;
 use App\Http\Controllers\App\InicioController;
+use App\Http\Controllers\App\LocalizacaoController;
 use App\Http\Controllers\App\PlaceDetalheController;
 use App\Http\Controllers\App\ProspectoController;
+use App\Http\Controllers\App\ReceitaController;
 use App\Http\Controllers\App\RotaController;
 use App\Http\Controllers\App\RotaPageController;
 use App\Http\Controllers\App\SetupController;
@@ -36,6 +39,7 @@ Route::middleware(['auth', 'permission:admin.acessar'])
     ->group(function () {
         Route::get('/', PainelController::class)->name('painel');
         Route::get('/integracoes', IntegracoesController::class)->name('integracoes');
+        Route::get('/localizacoes/ao-vivo', LocalizacaoAoVivoController::class)->name('localizacoes.ao-vivo');
 
         Route::middleware('permission:unidades.ver')->group(function () {
             Route::get('/unidades', [UnidadeController::class, 'index'])->name('unidades.index');
@@ -117,6 +121,13 @@ Route::middleware(['auth', 'permission:app.acessar'])
             Route::post('/cercas', [CercaController::class, 'store'])
                 ->middleware('permission:prospectos.buscar')
                 ->name('cercas.store');
+
+            Route::post('/localizacao', [LocalizacaoController::class, 'store'])
+                ->name('localizacao.store');
+
+            Route::post('/receita/consultar', [ReceitaController::class, 'consultar'])
+                ->middleware('permission:prospectos.buscar')
+                ->name('receita.consultar');
 
             Route::post('/visitas', [CheckinController::class, 'store'])
                 ->middleware('permission:visitas.criar')

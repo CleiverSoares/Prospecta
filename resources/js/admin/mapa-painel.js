@@ -5,11 +5,18 @@ export function registrarMapaPainel(Alpine) {
         unidades: Array.isArray(config.unidades) ? config.unidades : [],
         prospectos: Array.isArray(config.prospectos) ? config.prospectos : [],
         visitas: Array.isArray(config.visitas) ? config.visitas : [],
-        camadas: { unidades: true, prospectos: true, visitas: true, calor: false },
+        aoVivo: Array.isArray(config.aoVivo) ? config.aoVivo : [],
+        aoVivoUrl: config.aoVivoUrl || '',
+        filtros: config.filtros || {},
+        janelaMinutos: config.janelaMinutos || 15,
+        camadas: { unidades: true, prospectos: true, visitas: true, calor: false, aoVivo: true },
         erro: '',
         mapa: null,
+        mapboxgl: null,
         markersProspectos: [],
         markersVisitas: [],
+        markersAoVivo: [],
+        pollTimer: null,
 
         init() {
             if (!this.token) {
@@ -17,6 +24,14 @@ export function registrarMapaPainel(Alpine) {
                 return;
             }
             this.$nextTick(() => this.iniciarMapa());
+            this.$watch('camadas.aoVivo', (on) => {
+                if (on) this.iniciarPoll();
+                else this.pararPoll();
+            });
+        },
+
+        destroy() {
+            this.pararPoll();
         },
 
         toggleCamada(nome) {
@@ -39,12 +54,67 @@ export function registrarMapaPainel(Alpine) {
             this.markersVisitas.forEach((m) => {
                 m.getElement().style.display = this.camadas.visitas ? '' : 'none';
             });
+            this.markersAoVivo.forEach((m) => {
+                m.getElement().style.display = this.camadas.aoVivo ? '' : 'none';
+            });
         },
 
-        pinEl(cor) {
+        pinEl(cor, pulse = false) {
             const el = document.createElement('div');
-            el.style.cssText = `width:12px;height:12px;border-radius:999px;background:${cor};border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.25)`;
+            el.style.cssText = `width:${pulse ? 16 : 12}px;height:${pulse ? 16 : 12}px;border-radius:999px;background:${cor};border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.25)${pulse ? ',0 0 0 6px rgba(0,131,193,.25)' : ''}`;
             return el;
+        },
+
+        limparAoVivo() {
+            this.markersAoVivo.forEach((m) => m.remove());
+            this.markersAoVivo = [];
+        },
+
+        desenharAoVivo(lista) {
+            if (!this.mapa || !this.mapboxgl) return;
+            this.limparAoVivo();
+            (lista || []).forEach((v) => {
+                if (v.lat == null || v.lng == null) return;
+                const m = new this.mapboxgl.Marker({ element: this.pinEl('#22c55e', true) })
+                    .setLngLat([v.lng, v.lat])
+                    .setPopup(new this.mapboxgl.Popup({ offset: 14 }).setHTML(
+                        `<strong>${v.nome || 'Vendedor'}</strong><br><span style="font-size:12px">há ${v.idade_segundos ?? 0}s</span>`,
+                    ))
+                    .addTo(this.mapa);
+                this.markersAoVivo.push(m);
+            });
+            this.aplicarCamadas();
+        },
+
+        async puxarAoVivo() {
+            if (!this.aoVivoUrl || !this.camadas.aoVivo) return;
+            const params = new URLSearchParams({ minutos: String(this.janelaMinutos) });
+            ['unidade_id', 'gestor_id', 'vendedor_id'].forEach((k) => {
+                if (this.filtros?.[k]) params.set(k, this.filtros[k]);
+            });
+            try {
+                const res = await fetch(`${this.aoVivoUrl}?${params}`, {
+                    headers: { Accept: 'application/json' },
+                    credentials: 'same-origin',
+                });
+                if (!res.ok) return;
+                const dados = await res.json();
+                this.aoVivo = dados.vendedores || [];
+                this.desenharAoVivo(this.aoVivo);
+            } catch (e) {}
+        },
+
+        iniciarPoll() {
+            this.pararPoll();
+            this.puxarAoVivo();
+            this.pollTimer = setInterval(() => this.puxarAoVivo(), 8000);
+        },
+
+        pararPoll() {
+            if (this.pollTimer) {
+                clearInterval(this.pollTimer);
+                this.pollTimer = null;
+            }
         },
 
         async iniciarMapa() {
@@ -53,6 +123,7 @@ export function registrarMapaPainel(Alpine) {
 
             const { default: mapboxgl } = await import('mapbox-gl');
             await import('mapbox-gl/dist/mapbox-gl.css');
+            this.mapboxgl = mapboxgl;
             mapboxgl.accessToken = this.token;
 
             this.mapa = new mapboxgl.Map({
@@ -103,7 +174,7 @@ export function registrarMapaPainel(Alpine) {
                         if (!nome) return;
                         new mapboxgl.Popup().setLngLat(e.lngLat).setHTML(`<strong>${nome}</strong>`).addTo(this.mapa);
                     });
-                } else if (!this.prospectos.length && !this.visitas.length) {
+                } else if (!this.prospectos.length && !this.visitas.length && !this.aoVivo.length) {
                     this.erro = 'Sem polígonos nem pins para exibir ainda.';
                 }
 
@@ -159,7 +230,9 @@ export function registrarMapaPainel(Alpine) {
                     });
                 }
 
+                this.desenharAoVivo(this.aoVivo);
                 this.aplicarCamadas();
+                if (this.camadas.aoVivo) this.iniciarPoll();
             });
         },
     }));

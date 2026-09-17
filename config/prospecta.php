@@ -65,4 +65,9 @@ return [
 
     'cerca_dias' => (int) env('CERCA_TEMPORARIA_DIAS', 30),
 
+    'tracking' => [
+        'intervalo_ms' => (int) env('TRACKING_INTERVALO_MS', 12000),
+        'janela_minutos' => (int) env('TRACKING_JANELA_MINUTOS', 15),
+    ],
+
 ];
