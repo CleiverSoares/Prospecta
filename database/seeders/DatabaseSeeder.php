@@ -11,6 +11,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             PapeisEPermissoesSeeder::class,
             DemoSeeder::class,
+            MassaCampoSeeder::class,
         ]);
     }
 }

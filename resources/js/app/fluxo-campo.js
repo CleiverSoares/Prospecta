@@ -436,6 +436,7 @@ export function registrarFluxoCampo(Alpine) {
             this.renderer = new google.maps.DirectionsRenderer({
                 map: this.mapa,
                 suppressMarkers: true,
+                preserveViewport: true,
                 polylineOptions: { strokeColor: '#0083C1', strokeWeight: 5 },
             });
             this.infoWindow = new google.maps.InfoWindow();
@@ -453,6 +454,19 @@ export function registrarFluxoCampo(Alpine) {
             };
         },
 
+        distanciaMetrosRota(a, b) {
+            if (!a || !b || a.lat == null || b.lat == null) return null;
+            const R = 6371000;
+            const toRad = (d) => (d * Math.PI) / 180;
+            const dLat = toRad(b.lat - a.lat);
+            const dLng = toRad(b.lng - a.lng);
+            const lat1 = toRad(a.lat);
+            const lat2 = toRad(b.lat);
+            const h = Math.sin(dLat / 2) ** 2
+                + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+            return 2 * R * Math.asin(Math.sqrt(h));
+        },
+
         atualizarCarro() {
             if (!this.mapa || !this.gps) return;
             if (!this.carroMarker) {
@@ -466,15 +480,27 @@ export function registrarFluxoCampo(Alpine) {
             } else {
                 this.carroMarker.setPosition(this.gps);
             }
-            if (this.seguirNoMapa) {
-                const prox = this.itemFocado || this.itens[0];
-                if (prox?.lat != null) {
-                    const b = new google.maps.LatLngBounds();
-                    b.extend(this.gps);
-                    b.extend({ lat: prox.lat, lng: prox.lng });
-                    this.mapa.fitBounds(b, 80);
-                } else {
-                    this.mapa.panTo(this.gps);
+            if (!this.seguirNoMapa) return;
+
+            // Longe da parada: câmera cola no vendedor (navegação).
+            // Perto (<2,5 km): enquadra você + próximo pin.
+            const prox = this.itemFocado || this.itens[0];
+            const dist = prox?.lat != null
+                ? this.distanciaMetrosRota(this.gps, { lat: prox.lat, lng: prox.lng })
+                : null;
+
+            if (prox?.lat != null && dist != null && dist < 2500) {
+                const b = new google.maps.LatLngBounds();
+                b.extend(this.gps);
+                b.extend({ lat: prox.lat, lng: prox.lng });
+                this.mapa.fitBounds(b, 100);
+                const z = this.mapa.getZoom();
+                if (z > 17) this.mapa.setZoom(17);
+                if (z < 14) this.mapa.setZoom(14);
+            } else {
+                this.mapa.panTo(this.gps);
+                if ((this.mapa.getZoom() || 0) < 14) {
+                    this.mapa.setZoom(15);
                 }
             }
         },
@@ -498,7 +524,7 @@ export function registrarFluxoCampo(Alpine) {
             if (this.seguirNoMapa) {
                 this.itemFocado = this.itens[0] || null;
                 this.atualizarCarro();
-                this.status = 'Modo mapa ativo — acompanhando você até a próxima parada.';
+                this.status = 'Seguindo você no mapa (câmera no GPS). Perto da parada, enquadra o pin.';
             } else {
                 this.status = `${this.itens.length} paradas na janela de ouro.`;
             }
@@ -712,6 +738,12 @@ export function registrarFluxoCampo(Alpine) {
                     if (s === 'OK') {
                         this.renderer.setDirections(r);
                         this._rotaDesenhada = true;
+                        // Só enquadra a rota inteira se NÃO estiver seguindo o vendedor
+                        if (!this.seguirNoMapa && r.routes?.[0]?.bounds) {
+                            this.mapa.fitBounds(r.routes[0].bounds, 56);
+                        } else if (this.seguirNoMapa) {
+                            this.atualizarCarro();
+                        }
                     }
                 });
             }
@@ -752,6 +784,7 @@ export function registrarFluxoCampo(Alpine) {
         gps: null,
         distancia: null,
         foto: null,
+        fotoPreview: null,
         gravando: false,
         recorder: null,
         chunks: [],
@@ -759,16 +792,23 @@ export function registrarFluxoCampo(Alpine) {
         msg: '',
         erro: '',
         upsellAck: false,
-        objecaoAberta: null,
         cnpjConsulta: '',
         consultandoReceita: false,
         receitaMsg: '',
+        salvando: false,
         mapa: null,
         carroMarker: null,
         pinMarker: null,
+        raioCirculo: null,
 
         get noLocal() {
             return this.distancia != null && this.distancia <= 100;
+        },
+
+        get ordemAtual() {
+            if (!this.atual || !this.itens.length) return 1;
+            const idx = this.itens.findIndex((i) => i.id === this.atual.id);
+            return (idx >= 0 ? idx : 0) + 1;
         },
 
         init() {
@@ -777,13 +817,22 @@ export function registrarFluxoCampo(Alpine) {
             if (this.atual?.cnpj && !String(this.atual.cnpj).startsWith('G')) {
                 this.cnpjConsulta = this.atual.cnpj;
             }
-            if (this.atual?.is_cliente) {
-                this.msg = 'Cliente base — veja a oportunidade de upsell no guia antes de finalizar.';
-            }
-            this.$nextTick(() => this.aguardarMaps(() => {
-                this.iniciarMapa();
-                this.carregarGps();
-            }));
+            this.$nextTick(() => {
+                this.$nextTick(() => this.aguardarMaps(() => {
+                    this.iniciarMapa();
+                    this.carregarGps();
+                }));
+            });
+            this.$watch('atual', () => {
+                this.upsellAck = false;
+                this.foto = null;
+                this.fotoPreview = null;
+                this.audioBlob = null;
+                this.erro = '';
+                this.msg = '';
+                this.atualizarPinMapa();
+                this.enquadrarMapa();
+            });
         },
 
         async consultarReceita() {
@@ -842,14 +891,66 @@ export function registrarFluxoCampo(Alpine) {
                 mapTypeControl: false,
                 streetViewControl: false,
                 fullscreenControl: false,
+                gestureHandling: 'greedy',
             });
+            this.atualizarPinMapa();
+            requestAnimationFrame(() => {
+                google.maps.event.trigger(this.mapa, 'resize');
+                this.enquadrarMapa();
+            });
+        },
+
+        atualizarPinMapa() {
+            if (!this.mapa || !window.google?.maps) return;
             if (this.atual?.lat != null) {
-                this.pinMarker = new google.maps.Marker({
+                const pos = { lat: this.atual.lat, lng: this.atual.lng };
+                if (!this.pinMarker) {
+                    this.pinMarker = new google.maps.Marker({
+                        map: this.mapa,
+                        position: pos,
+                        title: this.atual.razao_social,
+                        zIndex: 10,
+                    });
+                } else {
+                    this.pinMarker.setPosition(pos);
+                    this.pinMarker.setMap(this.mapa);
+                }
+                if (this.raioCirculo) this.raioCirculo.setMap(null);
+                this.raioCirculo = new google.maps.Circle({
                     map: this.mapa,
-                    position: { lat: this.atual.lat, lng: this.atual.lng },
-                    label: 'P',
-                    title: this.atual.razao_social,
+                    center: pos,
+                    radius: 100,
+                    strokeColor: '#0083C1',
+                    strokeOpacity: 0.9,
+                    strokeWeight: 2,
+                    fillColor: '#0083C1',
+                    fillOpacity: 0.12,
                 });
+            }
+        },
+
+        enquadrarMapa() {
+            if (!this.mapa || !window.google?.maps) return;
+            if (this.gps && this.atual?.lat != null) {
+                const dist = this.distanciaMetros(this.gps, this.atual);
+                if (dist != null && dist < 2500) {
+                    const b = new google.maps.LatLngBounds();
+                    b.extend(this.gps);
+                    b.extend({ lat: this.atual.lat, lng: this.atual.lng });
+                    this.mapa.fitBounds(b, 72);
+                    const z = this.mapa.getZoom();
+                    if (z > 18) this.mapa.setZoom(18);
+                    return;
+                }
+                this.mapa.panTo(this.gps);
+                if ((this.mapa.getZoom() || 0) < 14) this.mapa.setZoom(15);
+                return;
+            }
+            if (this.atual?.lat != null) {
+                this.mapa.panTo({ lat: this.atual.lat, lng: this.atual.lng });
+                this.mapa.setZoom(16);
+            } else if (this.gps) {
+                this.mapa.panTo(this.gps);
             }
         },
 
@@ -882,10 +983,11 @@ export function registrarFluxoCampo(Alpine) {
                     } else {
                         this.carroMarker.setPosition(this.gps);
                     }
+                    this.enquadrarMapa();
                 }
             }, () => {
                 this.erro = 'Permita o GPS para fazer check-in.';
-            }, { enableHighAccuracy: true });
+            }, { enableHighAccuracy: true, maximumAge: 3000 });
         },
 
         distanciaMetros(a, b) {
@@ -901,6 +1003,8 @@ export function registrarFluxoCampo(Alpine) {
 
         onFoto(e) {
             this.foto = e.target.files?.[0] || null;
+            if (this.fotoPreview) URL.revokeObjectURL(this.fotoPreview);
+            this.fotoPreview = this.foto ? URL.createObjectURL(this.foto) : null;
         },
 
         async toggleAudio() {
@@ -909,19 +1013,23 @@ export function registrarFluxoCampo(Alpine) {
                 this.gravando = false;
                 return;
             }
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            this.chunks = [];
-            this.recorder = new MediaRecorder(stream);
-            this.recorder.ondataavailable = (ev) => this.chunks.push(ev.data);
-            this.recorder.onstop = () => {
-                this.audioBlob = new Blob(this.chunks, { type: 'audio/webm' });
-                stream.getTracks().forEach((t) => t.stop());
-            };
-            this.recorder.start();
-            this.gravando = true;
-            setTimeout(() => {
-                if (this.gravando) this.toggleAudio();
-            }, 15000);
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                this.chunks = [];
+                this.recorder = new MediaRecorder(stream);
+                this.recorder.ondataavailable = (ev) => this.chunks.push(ev.data);
+                this.recorder.onstop = () => {
+                    this.audioBlob = new Blob(this.chunks, { type: 'audio/webm' });
+                    stream.getTracks().forEach((t) => t.stop());
+                };
+                this.recorder.start();
+                this.gravando = true;
+                setTimeout(() => {
+                    if (this.gravando) this.toggleAudio();
+                }, 15000);
+            } catch (e) {
+                this.erro = 'Não foi possível acessar o microfone.';
+            }
         },
 
         async salvar() {
@@ -955,7 +1063,8 @@ export function registrarFluxoCampo(Alpine) {
                 return;
             }
             this.erro = '';
-            this.msg = 'Salvando visita…';
+            this.msg = '';
+            this.salvando = true;
             const fd = new FormData();
             fd.append('prospecto_id', this.atual.id);
             fd.append('status', this.status);
@@ -980,20 +1089,18 @@ export function registrarFluxoCampo(Alpine) {
                         : dados.message;
                     throw new Error(msg || 'Falha ao salvar.');
                 }
-                this.msg = 'Visita salva. Próximo pin.';
+                this.msg = 'Visita salva.';
                 this.itens = this.itens.filter((i) => i.id !== this.atual.id);
                 localStorage.setItem('prospecta.rota', JSON.stringify(this.itens));
                 this.atual = this.itens[0] || null;
-                this.foto = null;
-                this.audioBlob = null;
-                this.distancia = this.atual ? this.distanciaMetros(this.gps, this.atual) : null;
-                if (this.pinMarker && this.atual?.lat != null) {
-                    this.pinMarker.setPosition({ lat: this.atual.lat, lng: this.atual.lng });
-                    this.mapa?.panTo({ lat: this.atual.lat, lng: this.atual.lng });
+                this.status = 'FEITA';
+                if (!this.atual) {
+                    this.msg = 'Rota concluída — todas as visitas salvas.';
                 }
             } catch (e) {
                 this.erro = e.message;
-                this.msg = '';
+            } finally {
+                this.salvando = false;
             }
         },
     }));

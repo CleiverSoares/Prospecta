@@ -6,10 +6,12 @@ use App\Models\Unidade;
 use App\Models\User;
 use Database\Seeders\PapeisEPermissoesSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\ComSetupDiario;
 use Tests\TestCase;
 
 class TerritorioApiTest extends TestCase
 {
+    use ComSetupDiario;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -28,6 +30,7 @@ class TerritorioApiTest extends TestCase
         $vendedor->assignRole('vendedor');
 
         $this->actingAs($vendedor)
+            ->withSession($this->sessionSetup())
             ->postJson(route('app.territorio.verificar'), ['cep' => '30130-010'])
             ->assertOk()
             ->assertJson([
@@ -41,6 +44,7 @@ class TerritorioApiTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)
+            ->withSession($this->sessionSetup())
             ->postJson(route('app.territorio.verificar'), ['cep' => '30130-010'])
             ->assertForbidden();
     }

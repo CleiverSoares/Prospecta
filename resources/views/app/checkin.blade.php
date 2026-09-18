@@ -8,7 +8,7 @@
 @endphp
 
 <x-layouts.app-pwa titulo="Check-in" passo="checkin">
-    <x-slot:subtitulo>Só libera a ≤100 m do pin. GPS + foto + áudio (visita feita).</x-slot:subtitulo>
+    <x-slot:subtitulo>No local (≤100 m) · foto + áudio se visita feita</x-slot:subtitulo>
 
     @if ($googleMapsKey)
         <x-slot:head>
@@ -16,98 +16,168 @@
         </x-slot:head>
     @endif
 
-    <div class="mx-auto max-w-xl space-y-4" x-data="checkinCampo(@js($config))">
-        <template x-if="!atual">
-            <p class="rounded-xl border border-surface-line bg-white p-5 text-sm text-ink-soft">Nenhuma parada pendente. Gere a rota primeiro.</p>
-        </template>
+    <div class="mx-auto max-w-lg space-y-3 pb-28" x-data="checkinCampo(@js($config))">
+        <div
+            class="rounded-2xl border border-surface-line bg-white p-5 text-sm text-ink-soft shadow-panel"
+            x-show="!atual"
+            x-cloak
+        >
+            Nenhuma parada pendente. Gere a rota primeiro.
+            <a href="{{ route('app.rota') }}" class="mt-3 inline-flex font-semibold text-brand">Ir para rota →</a>
+        </div>
 
-        <template x-if="atual">
-            <div class="space-y-4">
-                <div class="overflow-hidden rounded-xl border border-surface-line bg-white shadow-panel">
-                    <div x-ref="mapaMini" class="h-48 w-full bg-surface-muted"></div>
-                </div>
-
-                <div class="space-y-4 rounded-xl border border-surface-line bg-white p-5 shadow-panel">
-                    <div>
-                        <p class="text-xs font-semibold uppercase tracking-wide text-ink-faint">Parada atual</p>
-                        <p class="mt-1 text-lg font-semibold text-ink" x-text="atual.razao_social"></p>
-                        <p class="text-xs text-ink-faint" x-text="atual.cnpj"></p>
-                        <p class="text-sm text-ink-soft" x-text="atual.endereco || atual.guia_bolso"></p>
-                    </div>
-
-                    <div
-                        class="space-y-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-3"
-                        x-show="atual.is_cliente"
-                        x-cloak
-                    >
-                        <p class="text-sm font-semibold text-amber-950">Oportunidade de upsell (obrigatório)</p>
-                        <p class="text-sm text-amber-900" x-text="atual.guia?.pitch || atual.guia_bolso"></p>
-                        <template x-for="(obj, idx) in (atual.guia?.objecoes || [])" :key="'c-obj-'+idx">
-                            <details class="rounded-lg bg-white/80 px-3 py-2 text-sm">
-                                <summary class="cursor-pointer font-medium" x-text="obj.titulo"></summary>
-                                <p class="mt-1 text-ink-soft" x-text="obj.resposta"></p>
-                            </details>
-                        </template>
-                        <a
-                            x-show="atual.guia?.ajuda_url"
-                            :href="atual.guia?.ajuda_url"
-                            target="_blank"
-                            rel="noopener"
-                            class="inline-flex text-sm font-semibold text-brand"
-                        >Ajuda Alterdata →</a>
-                        <label class="mt-2 flex items-start gap-2 text-sm text-amber-950">
-                            <input type="checkbox" class="mt-1 rounded border-amber-400 text-brand" x-model="upsellAck">
-                            <span>Li a oportunidade de upsell e posso iniciar o check-in.</span>
-                        </label>
-                    </div>
-
-                    <div class="space-y-2 rounded-xl border border-surface-line bg-surface-muted/50 px-3 py-3">
-                        <p class="text-sm font-semibold text-ink">Receita (CNPJ)</p>
-                        <p class="text-xs text-ink-faint">Driver: <span x-text="receitaDriver"></span> — use http + token no .env para consulta real.</p>
-                        <div class="flex gap-2">
-                            <input type="text" x-model="cnpjConsulta" placeholder="00.000.000/0001-00" class="h-10 flex-1 rounded-md border border-surface-line px-3 text-sm">
-                            <button type="button" class="pwa-btn pwa-btn-secondary shrink-0" @click="consultarReceita()" :disabled="consultandoReceita" x-text="consultandoReceita ? '…' : 'Consultar'"></button>
-                        </div>
-                        <p class="text-sm text-ink-soft" x-show="receitaMsg" x-text="receitaMsg" x-cloak></p>
-                    </div>
-
-                    <p
-                        class="rounded-md px-3 py-2 text-sm font-medium"
-                        :class="noLocal ? 'border border-emerald-200 bg-emerald-50 text-emerald-800' : 'border border-rose-200 bg-rose-50 text-rose-800'"
+        <div class="space-y-3" x-show="atual" x-cloak>
+            {{-- Mapa + distância --}}
+            <section class="relative overflow-hidden rounded-2xl border border-surface-line bg-white shadow-panel">
+                <div x-ref="mapaMini" class="pwa-checkin-mapa w-full bg-surface-muted"></div>
+                <div class="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3">
+                    <span
+                        class="rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm backdrop-blur"
+                        :class="noLocal
+                            ? 'bg-emerald-500 text-white'
+                            : 'bg-white/95 text-ink'"
                         x-text="distancia == null
-                            ? (gps ? 'Calculando distância…' : 'Ative a localização')
+                            ? (gps ? 'GPS…' : 'Ative o GPS')
                             : (noLocal
-                                ? ('No local — ' + Math.round(distancia) + 'm do pin')
-                                : ('Longe — ' + Math.round(distancia) + 'm (máx. 100m)'))"
-                    ></p>
+                                ? ('No local · ' + Math.round(distancia) + ' m')
+                                : (Math.round(distancia) + ' m · máx. 100 m'))"
+                    ></span>
+                    <span
+                        class="rounded-full bg-brand px-3 py-1.5 text-xs font-semibold text-white shadow-sm"
+                        x-show="itens.length"
+                        x-text="'Parada ' + (ordemAtual) + ' / ' + itens.length"
+                    ></span>
+                </div>
+            </section>
 
-                    <label class="block space-y-1.5">
-                        <span class="text-sm font-medium text-ink">Resultado</span>
-                        <select x-model="status" class="h-11 w-full rounded-md border border-surface-line px-3 text-sm">
-                            <option value="SEM_NINGUEM">Não tinha ninguém</option>
-                            <option value="FEITA">Visita feita</option>
-                            <option value="RETORNO">Agendado retorno</option>
-                        </select>
-                    </label>
+            {{-- Empresa --}}
+            <section class="rounded-2xl border border-surface-line bg-white p-4 shadow-panel">
+                <p class="text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-ink-faint">Parada atual</p>
+                <p class="mt-1 text-lg font-semibold leading-snug text-ink" x-text="atual?.razao_social"></p>
+                <p class="mt-0.5 text-xs text-ink-faint" x-text="atual?.cnpj"></p>
+                <p class="mt-1 text-sm text-ink-soft" x-text="atual?.endereco || ''"></p>
 
-                    <label class="block space-y-1.5">
-                        <span class="text-sm font-medium text-ink">Foto da fachada</span>
-                        <input type="file" accept="image/*" capture="environment" class="block w-full text-sm" @change="onFoto($event)">
-                    </label>
+                <div class="mt-3 flex flex-wrap gap-2" x-show="atual?.guia_bolso || atual?.guia?.pitch" x-cloak>
+                    <p class="w-full rounded-xl bg-brand-soft px-3 py-2 text-sm text-brand-strong" x-text="atual?.guia?.pitch || atual?.guia_bolso"></p>
+                </div>
+            </section>
 
-                    <button type="button" class="pwa-btn pwa-btn-secondary" @click="toggleAudio()" x-text="gravando ? 'Parar áudio' : 'Gravar áudio (15s)'"></button>
+            {{-- Upsell --}}
+            <section
+                class="space-y-2 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3"
+                x-show="atual?.is_cliente"
+                x-cloak
+            >
+                <p class="text-sm font-semibold text-amber-950">Cliente — leia o upsell antes</p>
+                <template x-for="(obj, idx) in (atual?.guia?.objecoes || [])" :key="'c-obj-'+idx">
+                    <details class="rounded-xl bg-white/90 px-3 py-2 text-sm">
+                        <summary class="cursor-pointer font-medium" x-text="obj.titulo"></summary>
+                        <p class="mt-1 text-ink-soft" x-text="obj.resposta"></p>
+                    </details>
+                </template>
+                <a
+                    x-show="atual?.guia?.ajuda_url"
+                    :href="atual?.guia?.ajuda_url"
+                    target="_blank"
+                    rel="noopener"
+                    class="inline-flex text-sm font-semibold text-brand"
+                >Ajuda Alterdata →</a>
+                <label class="mt-1 flex items-start gap-2 text-sm text-amber-950">
+                    <input type="checkbox" class="mt-1 rounded border-amber-400 text-brand" x-model="upsellAck">
+                    <span>Li a oportunidade e posso checkar.</span>
+                </label>
+            </section>
 
-                    <p class="text-sm text-emerald-700" x-show="msg" x-text="msg" x-cloak></p>
-                    <p class="text-sm text-rose-700" x-show="erro" x-text="erro" x-cloak></p>
-
+            {{-- Resultado em botões grandes --}}
+            <section class="rounded-2xl border border-surface-line bg-white p-4 shadow-panel">
+                <p class="text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-ink-faint">Resultado</p>
+                <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
                     <button
                         type="button"
-                        class="pwa-btn pwa-btn-primary"
-                        :disabled="!noLocal || (atual.is_cliente && !upsellAck)"
-                        @click="salvar()"
-                    >Salvar visita</button>
+                        class="rounded-xl border px-3 py-3 text-sm font-semibold transition"
+                        :class="status === 'SEM_NINGUEM' ? 'border-brand bg-brand text-white' : 'border-surface-line bg-surface-muted text-ink'"
+                        @click="status = 'SEM_NINGUEM'"
+                    >Não tinha ninguém</button>
+                    <button
+                        type="button"
+                        class="rounded-xl border px-3 py-3 text-sm font-semibold transition"
+                        :class="status === 'FEITA' ? 'border-brand bg-brand text-white' : 'border-surface-line bg-surface-muted text-ink'"
+                        @click="status = 'FEITA'"
+                    >Visita feita</button>
+                    <button
+                        type="button"
+                        class="rounded-xl border px-3 py-3 text-sm font-semibold transition"
+                        :class="status === 'RETORNO' ? 'border-brand bg-brand text-white' : 'border-surface-line bg-surface-muted text-ink'"
+                        @click="status = 'RETORNO'"
+                    >Agendar retorno</button>
                 </div>
+            </section>
+
+            {{-- Provas --}}
+            <section class="space-y-3 rounded-2xl border border-surface-line bg-white p-4 shadow-panel" x-show="status === 'FEITA' || status === 'RETORNO'" x-cloak>
+                <p class="text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-ink-faint">
+                    Prova <span x-show="status === 'FEITA'">(obrigatória)</span>
+                </p>
+
+                <div>
+                    <label class="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-brand/40 bg-brand-soft/50 px-4 py-5 text-center">
+                        <span class="text-sm font-semibold text-brand-strong" x-text="foto ? 'Trocar foto da fachada' : 'Tirar foto da fachada'"></span>
+                        <span class="text-xs text-ink-soft">Câmera traseira</span>
+                        <input type="file" accept="image/*" capture="environment" class="sr-only" @change="onFoto($event)">
+                    </label>
+                    <img
+                        x-show="fotoPreview"
+                        :src="fotoPreview"
+                        alt="Prévia da fachada"
+                        class="mt-2 max-h-40 w-full rounded-xl object-cover"
+                        x-cloak
+                    >
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2" x-show="status === 'FEITA'" x-cloak>
+                    <button
+                        type="button"
+                        class="pwa-btn pwa-btn-secondary sm:w-auto"
+                        :class="gravando ? 'pwa-btn-danger' : ''"
+                        @click="toggleAudio()"
+                        x-text="gravando ? 'Parar gravação' : (audioBlob ? 'Regravar áudio (15s)' : 'Gravar áudio (15s)')"
+                    ></button>
+                    <span class="text-xs font-medium text-emerald-700" x-show="audioBlob && !gravando" x-cloak>Áudio pronto</span>
+                    <span class="text-xs font-medium text-rose-700" x-show="gravando" x-cloak>Gravando…</span>
+                </div>
+            </section>
+
+            {{-- Receita colapsada --}}
+            <details class="rounded-2xl border border-surface-line bg-white px-4 py-3 shadow-panel">
+                <summary class="cursor-pointer text-sm font-semibold text-ink">Consultar CNPJ (Receita)</summary>
+                <div class="mt-3 space-y-2">
+                    <div class="flex gap-2">
+                        <input type="text" x-model="cnpjConsulta" placeholder="00.000.000/0001-00" class="h-11 flex-1 rounded-xl border border-surface-line px-3 text-sm">
+                        <button type="button" class="pwa-btn pwa-btn-secondary shrink-0 sm:w-auto" @click="consultarReceita()" :disabled="consultandoReceita" x-text="consultandoReceita ? '…' : 'OK'"></button>
+                    </div>
+                    <p class="text-sm text-ink-soft" x-show="receitaMsg" x-text="receitaMsg" x-cloak></p>
+                </div>
+            </details>
+
+            <p class="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800" x-show="msg" x-text="msg" x-cloak></p>
+            <p class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800" x-show="erro" x-text="erro" x-cloak></p>
+        </div>
+
+        {{-- CTA fixo --}}
+        <div
+            class="fixed inset-x-0 bottom-[4.5rem] z-40 px-4 lg:bottom-6"
+            x-show="atual"
+            x-cloak
+        >
+            <div class="mx-auto max-w-lg rounded-2xl border border-white/60 bg-white/95 p-2 shadow-lg backdrop-blur">
+                <button
+                    type="button"
+                    class="pwa-btn pwa-btn-primary"
+                    :disabled="salvando || !noLocal || (atual?.is_cliente && !upsellAck)"
+                    @click="salvar()"
+                    x-text="salvando ? 'Salvando…' : (noLocal ? 'Salvar visita' : 'Aproxime-se do pin (100 m)')"
+                ></button>
             </div>
-        </template>
+        </div>
     </div>
 </x-layouts.app-pwa>

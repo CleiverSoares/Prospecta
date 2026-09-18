@@ -1,21 +1,9 @@
+import { poligonoValidoDoDraw, resumirProspectosNaArea } from './geo';
+
 function formatarCep(digitos) {
     const limpo = String(digitos).replace(/\D/g, '').padStart(8, '0').slice(0, 8);
 
     return `${limpo.slice(0, 5)}-${limpo.slice(5)}`;
-}
-
-function poligonoDoDraw(draw) {
-    const data = draw.getAll();
-    const feature = data.features.find((f) => {
-        const coords = f.geometry?.coordinates?.[0];
-
-        return f.geometry?.type === 'Polygon'
-            && Array.isArray(coords)
-            && coords.length >= 4
-            && coords.every((c) => Array.isArray(c) && Number.isFinite(c[0]) && Number.isFinite(c[1]));
-    });
-
-    return feature ? feature.geometry : null;
 }
 
 export function registrarMapaUnidade(Alpine) {
@@ -25,15 +13,19 @@ export function registrarMapaUnidade(Alpine) {
         estimarUrl: config.estimarUrl || '',
         csrf: config.csrf || '',
         poligonoInicial: config.poligonoInicial || null,
+        prospectos: Array.isArray(config.prospectos) ? config.prospectos : [],
         status: '',
         erro: '',
         temArea: false,
+        resumo: { total: 0, clientes: 0, leads: 0 },
         mapa: null,
         draw: null,
+        mapboxgl: null,
+        markersPins: [],
 
         init() {
             if (!this.token) {
-                this.erro = 'Configure VITE_MAPBOX_ACCESS_TOKEN e MAPBOX_ACCESS_TOKEN no .env.';
+                this.erro = 'Configure MAPBOX_ACCESS_TOKEN no .env e rode npm run build.';
 
                 return;
             }
@@ -53,21 +45,19 @@ export function registrarMapaUnidade(Alpine) {
                 import('@mapbox/mapbox-gl-draw'),
             ]);
 
-            await Promise.all([
-                import('mapbox-gl/dist/mapbox-gl.css'),
-                import('@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'),
-            ]);
+            await import('@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css');
 
+            this.mapboxgl = mapboxgl;
             mapboxgl.accessToken = this.token;
 
             this.mapa = new mapboxgl.Map({
                 container,
                 style: this.styleUrl,
-                center: [-43.94, -19.92],
+                center: [-43.2, -22.95],
                 zoom: 11,
             });
 
-            this.mapa.addControl(new mapboxgl.NavigationControl(), 'top-right');
+            this.mapa.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
 
             this.draw = new MapboxDraw({
                 displayControlsDefault: false,
@@ -75,13 +65,15 @@ export function registrarMapaUnidade(Alpine) {
                     polygon: true,
                     trash: true,
                 },
-                // simple_select evita polígono fantasma (coords null) do draw_polygon vazio
                 defaultMode: 'simple_select',
             });
 
             this.mapa.addControl(this.draw);
 
             this.mapa.on('load', () => {
+                this.desenharPins();
+                requestAnimationFrame(() => this.mapa?.resize());
+
                 if (this.poligonoInicial?.type === 'Polygon') {
                     this.draw.add({
                         type: 'Feature',
@@ -89,11 +81,14 @@ export function registrarMapaUnidade(Alpine) {
                         geometry: this.poligonoInicial,
                     });
                     this.sincronizarCampo();
-                    this.ajustarVisao(mapboxgl, this.poligonoInicial);
+                    this.atualizarResumo();
+                    this.ajustarVisao(this.poligonoInicial);
                     this.temArea = true;
-                    this.status = 'Área carregada. Use a lixeira para apagar ou o polígono para redesenhar.';
+                    this.status = 'Área carregada. Ajuste os vértices ou redesenhe — formato livre (não precisa ser quadrado).';
+                    this.estimarCeps();
                 } else {
-                    this.status = 'Clique no ícone de polígono (canto do mapa) e marque os vértices da área.';
+                    this.status = 'Veja os pins e desenhe um polígono livre em volta deles (qualquer formato).';
+                    this.ajustarVisaoPins();
                 }
             });
 
@@ -103,27 +98,66 @@ export function registrarMapaUnidade(Alpine) {
             this.mapa.on('draw.modechange', (e) => this.aoMudarModo(e));
         },
 
-        iniciarDesenho() {
-            if (!this.draw) {
-                return;
+        pinEl(cor) {
+            const el = document.createElement('div');
+            el.style.cssText = `width:11px;height:11px;border-radius:999px;background:${cor};border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.25)`;
+
+            return el;
+        },
+
+        desenharPins() {
+            if (!this.mapa || !this.mapboxgl) return;
+            this.markersPins.forEach((m) => m.remove());
+            this.markersPins = [];
+
+            this.prospectos.forEach((p) => {
+                if (p.lat == null || p.lng == null) return;
+                const m = new this.mapboxgl.Marker({
+                    element: this.pinEl(p.is_cliente ? '#0083C1' : '#16a34a'),
+                })
+                    .setLngLat([p.lng, p.lat])
+                    .setPopup(new this.mapboxgl.Popup({ offset: 10 }).setHTML(
+                        `<strong>${p.nome || 'Lead'}</strong>${p.is_cliente ? '<br><span style="font-size:12px">Cliente</span>' : ''}`,
+                    ))
+                    .addTo(this.mapa);
+                this.markersPins.push(m);
+            });
+        },
+
+        ajustarVisaoPins() {
+            if (!this.mapboxgl || !this.prospectos.length) return;
+            const bounds = new this.mapboxgl.LngLatBounds();
+            let ok = false;
+            this.prospectos.forEach((p) => {
+                if (p.lat == null || p.lng == null) return;
+                bounds.extend([p.lng, p.lat]);
+                ok = true;
+            });
+            if (ok && !bounds.isEmpty()) {
+                this.mapa.fitBounds(bounds, { padding: 48, maxZoom: 13 });
             }
+        },
+
+        iniciarDesenho() {
+            if (!this.draw) return;
 
             this.erro = '';
             this.draw.deleteAll();
             this.sincronizarCampo();
             this.temArea = false;
+            this.resumo = { total: 0, clientes: 0, leads: 0 };
             this.draw.changeMode('draw_polygon');
-            this.status = 'Clique no mapa para os vértices. Dê duplo clique (ou clique no primeiro ponto) para fechar a área.';
+            this.status = 'Clique nos vértices em volta dos pins. Duplo clique (ou feche no 1º ponto) para terminar.';
         },
 
         aoMudarModo(e) {
             if (e.mode === 'draw_polygon' && !this.temArea) {
-                this.status = 'Clique no mapa para os vértices. Dê duplo clique para fechar a área.';
+                this.status = 'Polígono livre: clique pelos vértices e feche a área.';
             }
         },
 
         sincronizarCampo() {
-            const poligono = poligonoDoDraw(this.draw);
+            const poligono = poligonoValidoDoDraw(this.draw);
             const campo = this.$refs.poligono;
 
             if (campo) {
@@ -133,16 +167,20 @@ export function registrarMapaUnidade(Alpine) {
             this.temArea = Boolean(poligono);
         },
 
-        ajustarVisao(mapboxgl, poligono) {
-            const coords = poligono?.coordinates?.[0];
+        atualizarResumo() {
+            const poligono = poligonoValidoDoDraw(this.draw);
+            this.resumo = poligono
+                ? resumirProspectosNaArea(this.prospectos, poligono)
+                : { total: 0, clientes: 0, leads: 0 };
+        },
 
-            if (!coords?.length) {
-                return;
-            }
+        ajustarVisao(poligono) {
+            const coords = poligono?.coordinates?.[0];
+            if (!coords?.length || !this.mapboxgl) return;
 
             const bounds = coords.reduce(
                 (b, c) => b.extend(c),
-                new mapboxgl.LngLatBounds(coords[0], coords[0]),
+                new this.mapboxgl.LngLatBounds(coords[0], coords[0]),
             );
 
             this.mapa.fitBounds(bounds, { padding: 48, maxZoom: 14 });
@@ -165,26 +203,23 @@ export function registrarMapaUnidade(Alpine) {
             }
 
             this.sincronizarCampo();
+            this.atualizarResumo();
 
-            if (!this.temArea) {
-                return;
-            }
+            if (!this.temArea) return;
 
             await this.estimarCeps();
         },
 
         aoApagar() {
             this.sincronizarCampo();
-            this.status = 'Área removida. Clique em “Desenhar área” ou no ícone de polígono para marcar de novo.';
+            this.resumo = { total: 0, clientes: 0, leads: 0 };
+            this.status = 'Área removida. Desenhe de novo em volta dos pins.';
             this.erro = '';
         },
 
         async estimarCeps() {
-            const poligono = poligonoDoDraw(this.draw);
-
-            if (!poligono || !this.estimarUrl) {
-                return;
-            }
+            const poligono = poligonoValidoDoDraw(this.draw);
+            if (!poligono || !this.estimarUrl) return;
 
             this.status = 'Estimando CEPs da área…';
             this.erro = '';
@@ -212,18 +247,18 @@ export function registrarMapaUnidade(Alpine) {
                 const inicio = document.getElementById('cep_inicio');
                 const fim = document.getElementById('cep_fim');
 
-                if (inicio) {
-                    inicio.value = formatarCep(dados.cep_inicio);
-                }
+                if (inicio) inicio.value = formatarCep(dados.cep_inicio);
+                if (fim) fim.value = formatarCep(dados.cep_fim);
 
-                if (fim) {
-                    fim.value = formatarCep(dados.cep_fim);
-                }
-
-                this.status = `Área marcada. Faixa estimada: ${formatarCep(dados.cep_inicio)} → ${formatarCep(dados.cep_fim)}`;
+                const n = this.resumo.total;
+                this.status = n
+                    ? `${n} lead(s) na área · CEP ${formatarCep(dados.cep_inicio)} → ${formatarCep(dados.cep_fim)}`
+                    : `Área marcada · CEP ${formatarCep(dados.cep_inicio)} → ${formatarCep(dados.cep_fim)}`;
             } catch (e) {
                 this.erro = e.message || 'Erro ao estimar CEPs.';
-                this.status = 'Área marcada, mas a estimativa de CEP falhou.';
+                this.status = this.resumo.total
+                    ? `${this.resumo.total} lead(s) na área (CEP não estimado).`
+                    : 'Área marcada, mas a estimativa de CEP falhou.';
             }
         },
     }));

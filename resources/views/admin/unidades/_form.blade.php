@@ -2,6 +2,10 @@
     /** @var \App\Models\Unidade|null $unidade */
     $unidade = $unidade ?? null;
     $rotuloSubmit = $rotuloSubmit ?? 'Salvar';
+    $poligonoPrefill = $poligonoPrefill ?? null;
+    $cepInicioPrefill = $cepInicioPrefill ?? null;
+    $cepFimPrefill = $cepFimPrefill ?? null;
+    $prospectosMapa = $prospectosMapa ?? [];
 
     $formatarCep = static function (?string $cep): string {
         if ($cep === null || $cep === '') {
@@ -16,6 +20,8 @@
 
         return substr($digitos, 0, 5).'-'.substr($digitos, 5, 3);
     };
+
+    $poligonoForm = old('poligono_geojson', $unidade?->poligono_geojson ?? $poligonoPrefill);
 @endphp
 
 <div class="grid gap-6 lg:grid-cols-12 lg:gap-8">
@@ -53,7 +59,7 @@
                 <x-admin.campo
                     rotulo="CEP início"
                     nome="cep_inicio"
-                    :valor="old('cep_inicio', $formatarCep($unidade?->cep_inicio))"
+                    :valor="old('cep_inicio', $formatarCep($unidade?->cep_inicio ?? $cepInicioPrefill))"
                     placeholder="00000-000"
                     inputmode="numeric"
                     autocomplete="postal-code"
@@ -62,7 +68,7 @@
                 <x-admin.campo
                     rotulo="CEP fim"
                     nome="cep_fim"
-                    :valor="old('cep_fim', $formatarCep($unidade?->cep_fim))"
+                    :valor="old('cep_fim', $formatarCep($unidade?->cep_fim ?? $cepFimPrefill))"
                     placeholder="00000-000"
                     inputmode="numeric"
                     autocomplete="postal-code"
@@ -77,6 +83,9 @@
     </div>
 
     <div class="min-w-0 lg:col-span-8">
-        <x-admin.mapa-unidade :poligono="old('poligono_geojson', $unidade?->poligono_geojson)" />
+        <x-admin.mapa-unidade
+            :poligono="$poligonoForm"
+            :prospectos="$prospectosMapa"
+        />
     </div>
 </div>

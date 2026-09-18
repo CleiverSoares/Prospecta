@@ -1,3 +1,5 @@
+import { poligonoValidoDoDraw, resumirProspectosNaArea } from './geo';
+
 export function registrarMapaPainel(Alpine) {
     Alpine.data('mapaPainel', (config) => ({
         token: config.token || '',
@@ -7,12 +9,22 @@ export function registrarMapaPainel(Alpine) {
         visitas: Array.isArray(config.visitas) ? config.visitas : [],
         aoVivo: Array.isArray(config.aoVivo) ? config.aoVivo : [],
         aoVivoUrl: config.aoVivoUrl || '',
+        rascunhoUrl: config.rascunhoUrl || '',
+        csrf: config.csrf || '',
+        podeCriarUnidade: Boolean(config.podeCriarUnidade),
         filtros: config.filtros || {},
         janelaMinutos: config.janelaMinutos || 15,
         camadas: { unidades: true, prospectos: true, visitas: true, calor: false, aoVivo: true },
         erro: '',
+        carregando: true,
+        selecionando: false,
+        temSelecao: false,
+        enviandoUnidade: false,
+        resumo: { total: 0, clientes: 0, leads: 0 },
+        poligonoSelecao: null,
         mapa: null,
         mapboxgl: null,
+        draw: null,
         markersProspectos: [],
         markersVisitas: [],
         markersAoVivo: [],
@@ -20,7 +32,8 @@ export function registrarMapaPainel(Alpine) {
 
         init() {
             if (!this.token) {
-                this.erro = 'Configure VITE_MAPBOX_ACCESS_TOKEN e MAPBOX_ACCESS_TOKEN no .env para ver o mapa.';
+                this.carregando = false;
+                this.erro = 'Configure MAPBOX_ACCESS_TOKEN no .env e rode npm run build.';
                 return;
             }
             this.$nextTick(() => this.iniciarMapa());
@@ -121,119 +134,222 @@ export function registrarMapaPainel(Alpine) {
             const container = this.$refs.mapa;
             if (!container || this.mapa) return;
 
-            const { default: mapboxgl } = await import('mapbox-gl');
-            await import('mapbox-gl/dist/mapbox-gl.css');
-            this.mapboxgl = mapboxgl;
-            mapboxgl.accessToken = this.token;
+            try {
+                const [{ default: mapboxgl }, { default: MapboxDraw }] = await Promise.all([
+                    import('mapbox-gl'),
+                    import('@mapbox/mapbox-gl-draw'),
+                ]);
+                await import('@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css');
 
-            this.mapa = new mapboxgl.Map({
-                container,
-                style: this.styleUrl,
-                center: [-43.5, -22.7],
-                zoom: 8,
-            });
-            this.mapa.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
+                this.mapboxgl = mapboxgl;
+                mapboxgl.accessToken = this.token;
 
-            this.mapa.on('load', () => {
-                const features = this.unidades
-                    .filter((u) => u.poligono?.type === 'Polygon')
-                    .map((u) => ({
-                        type: 'Feature',
-                        properties: { nome: u.nome || 'Unidade' },
-                        geometry: u.poligono,
-                    }));
+                this.mapa = new mapboxgl.Map({
+                    container,
+                    style: this.styleUrl,
+                    center: [-43.5, -22.7],
+                    zoom: 8,
+                    attributionControl: true,
+                });
+                this.mapa.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
 
-                if (features.length) {
-                    this.mapa.addSource('unidades-territorio', {
-                        type: 'geojson',
-                        data: { type: 'FeatureCollection', features },
-                    });
-                    this.mapa.addLayer({
-                        id: 'unidades-fill',
-                        type: 'fill',
-                        source: 'unidades-territorio',
-                        paint: { 'fill-color': '#0083C1', 'fill-opacity': 0.2 },
-                    });
-                    this.mapa.addLayer({
-                        id: 'unidades-line',
-                        type: 'line',
-                        source: 'unidades-territorio',
-                        paint: { 'line-color': '#0083C1', 'line-width': 2 },
-                    });
+                this.draw = new MapboxDraw({
+                    displayControlsDefault: false,
+                    controls: {},
+                    defaultMode: 'simple_select',
+                });
+                this.mapa.addControl(this.draw);
 
-                    const bounds = new mapboxgl.LngLatBounds();
-                    features.forEach((f) => {
-                        (f.geometry.coordinates?.[0] || []).forEach((c) => {
-                            if (Array.isArray(c) && Number.isFinite(c[0])) bounds.extend(c);
-                        });
-                    });
-                    if (!bounds.isEmpty()) this.mapa.fitBounds(bounds, { padding: 56, maxZoom: 12 });
+                this.mapa.on('draw.create', () => this.aoSelecionarArea());
+                this.mapa.on('draw.update', () => this.aoSelecionarArea());
+                this.mapa.on('draw.delete', () => this.limparSelecao());
 
-                    this.mapa.on('click', 'unidades-fill', (e) => {
-                        const nome = e.features?.[0]?.properties?.nome;
-                        if (!nome) return;
-                        new mapboxgl.Popup().setLngLat(e.lngLat).setHTML(`<strong>${nome}</strong>`).addTo(this.mapa);
-                    });
-                } else if (!this.prospectos.length && !this.visitas.length && !this.aoVivo.length) {
-                    this.erro = 'Sem polígonos nem pins para exibir ainda.';
-                }
-
-                this.prospectos.forEach((p) => {
-                    if (p.lat == null || p.lng == null) return;
-                    const m = new mapboxgl.Marker({ element: this.pinEl(p.is_cliente ? '#0083C1' : '#e11d48') })
-                        .setLngLat([p.lng, p.lat])
-                        .setPopup(new mapboxgl.Popup({ offset: 12 }).setHTML(`<strong>${p.nome || 'Lead'}</strong>`))
-                        .addTo(this.mapa);
-                    this.markersProspectos.push(m);
+                this.mapa.on('error', (e) => {
+                    const msg = e?.error?.message || 'Falha ao carregar tiles do Mapbox.';
+                    this.erro = msg;
+                    this.carregando = false;
                 });
 
-                this.visitas.forEach((v) => {
-                    if (v.lat == null || v.lng == null) return;
-                    const m = new mapboxgl.Marker({ element: this.pinEl('#64748b') })
-                        .setLngLat([v.lng, v.lat])
-                        .setPopup(new mapboxgl.Popup({ offset: 12 }).setHTML(`<strong>${v.nome || 'Visita'}</strong><br><span style="font-size:12px">${v.status || ''}</span>`))
-                        .addTo(this.mapa);
-                    this.markersVisitas.push(m);
+                this.mapa.on('load', () => {
+                    this.carregando = false;
+                    this.erro = '';
+                    requestAnimationFrame(() => {
+                        this.mapa?.resize();
+                        this.desenharCamadasIniciais(mapboxgl);
+                    });
+                });
+            } catch (e) {
+                this.carregando = false;
+                this.erro = e?.message || 'Não foi possível carregar o Mapbox. Rode npm.cmd run build.';
+            }
+        },
+
+        iniciarSelecaoArea() {
+            if (!this.draw || !this.podeCriarUnidade) return;
+            this.selecionando = true;
+            this.limparSelecao();
+            this.draw.changeMode('draw_polygon');
+        },
+
+        limparSelecao() {
+            this.temSelecao = false;
+            this.selecionando = false;
+            this.poligonoSelecao = null;
+            this.resumo = { total: 0, clientes: 0, leads: 0 };
+            if (this.draw) this.draw.deleteAll();
+        },
+
+        aoSelecionarArea() {
+            const features = this.draw.getAll().features.filter((f) => f.geometry?.type === 'Polygon');
+            if (features.length > 1) {
+                const manter = features[features.length - 1];
+                this.draw.deleteAll();
+                this.draw.add(manter);
+            }
+
+            const poligono = poligonoValidoDoDraw(this.draw);
+            if (!poligono) {
+                this.limparSelecao();
+                return;
+            }
+
+            this.poligonoSelecao = poligono;
+            this.resumo = resumirProspectosNaArea(this.prospectos, poligono);
+            this.temSelecao = true;
+            this.selecionando = false;
+        },
+
+        criarUnidadeDaArea() {
+            if (!this.poligonoSelecao || !this.rascunhoUrl || this.enviandoUnidade) return;
+            this.enviandoUnidade = true;
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = this.rascunhoUrl;
+            form.style.display = 'none';
+
+            const csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = '_token';
+            csrf.value = this.csrf;
+            form.appendChild(csrf);
+
+            const poly = document.createElement('input');
+            poly.type = 'hidden';
+            poly.name = 'poligono_geojson';
+            poly.value = JSON.stringify(this.poligonoSelecao);
+            form.appendChild(poly);
+
+            document.body.appendChild(form);
+            form.submit();
+        },
+
+        desenharCamadasIniciais(mapboxgl) {
+            if (!this.mapa) return;
+
+            const features = this.unidades
+                .filter((u) => u.poligono?.type === 'Polygon')
+                .map((u) => ({
+                    type: 'Feature',
+                    properties: { nome: u.nome || 'Unidade' },
+                    geometry: u.poligono,
+                }));
+
+            const bounds = new mapboxgl.LngLatBounds();
+
+            if (features.length) {
+                this.mapa.addSource('unidades-territorio', {
+                    type: 'geojson',
+                    data: { type: 'FeatureCollection', features },
+                });
+                this.mapa.addLayer({
+                    id: 'unidades-fill',
+                    type: 'fill',
+                    source: 'unidades-territorio',
+                    paint: { 'fill-color': '#0083C1', 'fill-opacity': 0.22 },
+                });
+                this.mapa.addLayer({
+                    id: 'unidades-line',
+                    type: 'line',
+                    source: 'unidades-territorio',
+                    paint: { 'line-color': '#006ea3', 'line-width': 2.2 },
                 });
 
-                const heatPoints = this.prospectos
-                    .filter((p) => p.lat != null && !p.is_cliente)
-                    .map((p) => ({
-                        type: 'Feature',
-                        properties: { weight: 1 },
-                        geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
-                    }));
-
-                if (heatPoints.length) {
-                    this.mapa.addSource('calor-oportunidade', {
-                        type: 'geojson',
-                        data: { type: 'FeatureCollection', features: heatPoints },
+                features.forEach((f) => {
+                    (f.geometry.coordinates?.[0] || []).forEach((c) => {
+                        if (Array.isArray(c) && Number.isFinite(c[0])) bounds.extend(c);
                     });
-                    this.mapa.addLayer({
-                        id: 'calor-heat',
-                        type: 'heatmap',
-                        source: 'calor-oportunidade',
-                        layout: { visibility: 'none' },
-                        paint: {
-                            'heatmap-weight': 1,
-                            'heatmap-intensity': 1.1,
-                            'heatmap-radius': 28,
-                            'heatmap-opacity': 0.7,
-                            'heatmap-color': [
-                                'interpolate', ['linear'], ['heatmap-density'],
-                                0, 'rgba(0,131,193,0)',
-                                0.4, 'rgba(0,131,193,0.45)',
-                                0.8, 'rgba(225,29,72,0.65)',
-                                1, 'rgba(225,29,72,0.9)',
-                            ],
-                        },
-                    });
-                }
+                });
 
-                this.desenharAoVivo(this.aoVivo);
-                this.aplicarCamadas();
-                if (this.camadas.aoVivo) this.iniciarPoll();
+                this.mapa.on('click', 'unidades-fill', (e) => {
+                    const nome = e.features?.[0]?.properties?.nome;
+                    if (!nome) return;
+                    new mapboxgl.Popup().setLngLat(e.lngLat).setHTML(`<strong>${nome}</strong>`).addTo(this.mapa);
+                });
+            }
+
+            this.prospectos.forEach((p) => {
+                if (p.lat == null || p.lng == null) return;
+                bounds.extend([p.lng, p.lat]);
+                const m = new mapboxgl.Marker({ element: this.pinEl(p.is_cliente ? '#0083C1' : '#e11d48') })
+                    .setLngLat([p.lng, p.lat])
+                    .setPopup(new mapboxgl.Popup({ offset: 12 }).setHTML(`<strong>${p.nome || 'Lead'}</strong>`))
+                    .addTo(this.mapa);
+                this.markersProspectos.push(m);
             });
+
+            this.visitas.forEach((v) => {
+                if (v.lat == null || v.lng == null) return;
+                bounds.extend([v.lng, v.lat]);
+                const m = new mapboxgl.Marker({ element: this.pinEl('#64748b') })
+                    .setLngLat([v.lng, v.lat])
+                    .setPopup(new mapboxgl.Popup({ offset: 12 }).setHTML(`<strong>${v.nome || 'Visita'}</strong><br><span style="font-size:12px">${v.status || ''}</span>`))
+                    .addTo(this.mapa);
+                this.markersVisitas.push(m);
+            });
+
+            const heatPoints = this.prospectos
+                .filter((p) => p.lat != null && !p.is_cliente)
+                .map((p) => ({
+                    type: 'Feature',
+                    properties: { weight: 1 },
+                    geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+                }));
+
+            if (heatPoints.length) {
+                this.mapa.addSource('calor-oportunidade', {
+                    type: 'geojson',
+                    data: { type: 'FeatureCollection', features: heatPoints },
+                });
+                this.mapa.addLayer({
+                    id: 'calor-heat',
+                    type: 'heatmap',
+                    source: 'calor-oportunidade',
+                    layout: { visibility: 'none' },
+                    paint: {
+                        'heatmap-weight': 1,
+                        'heatmap-intensity': 1.1,
+                        'heatmap-radius': 28,
+                        'heatmap-opacity': 0.7,
+                        'heatmap-color': [
+                            'interpolate', ['linear'], ['heatmap-density'],
+                            0, 'rgba(0,131,193,0)',
+                            0.4, 'rgba(0,131,193,0.45)',
+                            0.8, 'rgba(225,29,72,0.65)',
+                            1, 'rgba(225,29,72,0.9)',
+                        ],
+                    },
+                });
+            }
+
+            if (!bounds.isEmpty()) {
+                this.mapa.fitBounds(bounds, { padding: 64, maxZoom: 12 });
+            }
+
+            this.desenharAoVivo(this.aoVivo);
+            this.aplicarCamadas();
+            if (this.camadas.aoVivo) this.iniciarPoll();
+            this.mapa.resize();
         },
     }));
 }

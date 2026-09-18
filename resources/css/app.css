@@ -1,6 +1,7 @@
 @import 'auth.css';
 @import 'admin.css';
 @import 'app-pwa.css';
+@import 'mapbox-gl/dist/mapbox-gl.css';
 
 @tailwind base;
 @tailwind components;
@@ -28,5 +29,10 @@
 
     [x-cloak] {
         display: none !important;
+    }
+
+    /* Mapbox + Tailwind: canvas não pode herdar max-width/height:auto */
+    .mapboxgl-canvas {
+        max-width: none !important;
     }
 }

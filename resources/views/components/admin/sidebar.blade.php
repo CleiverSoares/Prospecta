@@ -8,6 +8,13 @@
             'icone' => 'mapa',
         ],
         [
+            'rotulo' => 'Visitas',
+            'rota' => 'admin.visitas.index',
+            'ativo' => request()->routeIs('admin.visitas.*'),
+            'permissao' => 'visitas.ver',
+            'icone' => 'visita',
+        ],
+        [
             'rotulo' => 'Unidades',
             'rota' => 'admin.unidades.index',
             'ativo' => request()->routeIs('admin.unidades.*'),
@@ -38,7 +45,7 @@
     ];
 @endphp
 
-<aside class="hidden w-[15.5rem] shrink-0 flex-col border-r border-white/40 bg-white/70 backdrop-blur-xl lg:flex">
+<aside class="admin-sidebar-glass hidden w-[15.5rem] shrink-0 flex-col border-r border-white/40 bg-white/70 backdrop-blur-xl lg:flex">
     <div class="admin-sidebar-brand px-5 pb-2">
         <a href="{{ route('admin.painel') }}" class="block no-underline">
             <span class="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-brand">Prospecta</span>
@@ -61,6 +68,8 @@
                     <span class="grid size-7 place-items-center rounded-xl bg-brand-soft/80 text-brand">
                         @if ($item['icone'] === 'mapa')
                             <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6.5 9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20Z"/><path d="M9 4v13.5M15 6.5V20"/></svg>
+                        @elseif ($item['icone'] === 'visita')
+                            <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
                         @elseif ($item['icone'] === 'territorio')
                             <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-4.5 7-11a7 7 0 1 0-14 0c0 6.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>
                         @elseif ($item['icone'] === 'equipe')
@@ -77,7 +86,7 @@
         @endforeach
     </nav>
 
-    <div class="mx-3 mb-4 rounded-2xl bg-white/80 p-4 shadow-sm">
+    <div class="admin-user-card mx-3 mb-4 rounded-2xl bg-white/80 p-4 shadow-sm">
         <p class="truncate text-sm font-medium text-ink">{{ auth()->user()?->name }}</p>
         <p class="mt-0.5 truncate text-xs text-ink-faint">{{ auth()->user()?->email }}</p>
         <form method="POST" action="{{ route('logout') }}" class="mt-3">

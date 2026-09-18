@@ -184,6 +184,17 @@
     height: min(48vh, 22rem);
 }
 
+.pwa-checkin-mapa {
+    height: min(42vh, 20rem);
+    min-height: 14rem;
+}
+
+@media (min-width: 1024px) {
+    .pwa-checkin-mapa {
+        height: 22rem;
+    }
+}
+
 .pwa-rota-mapa-el {
     height: min(48vh, 22rem);
     min-height: 16rem;

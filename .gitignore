@@ -27,6 +27,10 @@ Homestead.yaml
 Thumbs.db
 
 # Docs e tooling internos (só máquina local / Cursor)
-/docs/
+/docs/*
+!/docs/manual/
+!/docs/manual/**
 /AGENTS.md
 /CLAUDE.md
+
+docs/manual/screenshots/page-*.png

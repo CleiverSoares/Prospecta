@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\PainelController;
 use App\Http\Controllers\Admin\PapelController;
 use App\Http\Controllers\Admin\UnidadeController;
 use App\Http\Controllers\Admin\UsuarioController;
+use App\Http\Controllers\Admin\VisitaController;
 use App\Http\Controllers\App\AreaController;
 use App\Http\Controllers\App\CercaController;
 use App\Http\Controllers\App\CheckinController;
@@ -41,6 +42,13 @@ Route::middleware(['auth', 'permission:admin.acessar'])
         Route::get('/integracoes', IntegracoesController::class)->name('integracoes');
         Route::get('/localizacoes/ao-vivo', LocalizacaoAoVivoController::class)->name('localizacoes.ao-vivo');
 
+        Route::middleware('permission:visitas.ver')->group(function () {
+            Route::get('/visitas', [VisitaController::class, 'index'])->name('visitas.index');
+            Route::get('/visitas/{visita}', [VisitaController::class, 'show'])->name('visitas.show');
+            Route::get('/visitas/{visita}/foto', [VisitaController::class, 'foto'])->name('visitas.foto');
+            Route::get('/visitas/{visita}/audio', [VisitaController::class, 'audio'])->name('visitas.audio');
+        });
+
         Route::middleware('permission:unidades.ver')->group(function () {
             Route::get('/unidades', [UnidadeController::class, 'index'])->name('unidades.index');
             Route::get('/unidades/criar', [UnidadeController::class, 'create'])
@@ -49,6 +57,9 @@ Route::middleware(['auth', 'permission:admin.acessar'])
             Route::post('/unidades', [UnidadeController::class, 'store'])
                 ->middleware('permission:unidades.criar')
                 ->name('unidades.store');
+            Route::post('/unidades/rascunho-poligono', [UnidadeController::class, 'rascunhoPoligono'])
+                ->middleware('permission:unidades.criar')
+                ->name('unidades.rascunho-poligono');
             Route::post('/unidades/estimar-ceps', [UnidadeController::class, 'estimarCeps'])
                 ->middleware('permission:unidades.criar|unidades.editar')
                 ->name('unidades.estimar-ceps');
