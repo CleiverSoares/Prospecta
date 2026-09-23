@@ -35,7 +35,7 @@
         <section class="rounded-2xl border border-white/55 bg-white/90 p-5 shadow-sm sm:p-6">
             <h2 class="text-lg font-semibold text-ink">Clientes mock</h2>
             <p class="mt-2 text-sm leading-relaxed text-ink-soft">
-                Gera pins <strong class="font-medium text-ink">azuis</strong> de cliente no mapa (Barra, Zona Sul, Centro, Volta Redonda)
+                Gera pins <strong class="font-medium text-ink">azuis</strong> de cliente espalhados pelo Brasil (SP, RJ, BH, Sul, Nordeste, Centro-Oeste, Norte)
                 para simular carteira no Painel. Não apaga leads vermelhos.
             </p>
 

@@ -15,7 +15,7 @@ export function registrarMapaPainel(Alpine) {
         podeCriarUnidade: Boolean(config.podeCriarUnidade),
         filtros: config.filtros || {},
         janelaMinutos: config.janelaMinutos || 15,
-        camadas: { unidades: true, prospectos: true, visitas: true, calor: false, aoVivo: true },
+        camadas: { unidades: true, leads: true, clientes: true, visitas: true, calor: false, aoVivo: true },
         erro: '',
         carregando: true,
         selecionando: false,
@@ -63,7 +63,9 @@ export function registrarMapaPainel(Alpine) {
             }
 
             this.markersProspectos.forEach((m) => {
-                m.getElement().style.display = this.camadas.prospectos ? '' : 'none';
+                const isCliente = Boolean(m._prospectaCliente);
+                const show = isCliente ? this.camadas.clientes : this.camadas.leads;
+                m.getElement().style.display = show ? '' : 'none';
             });
             this.markersVisitas.forEach((m) => {
                 m.getElement().style.display = this.camadas.visitas ? '' : 'none';
@@ -421,13 +423,15 @@ export function registrarMapaPainel(Alpine) {
             this.prospectos.forEach((p) => {
                 if (p.lat == null || p.lng == null) return;
                 bounds.extend([p.lng, p.lat]);
-                const m = new mapboxgl.Marker({ element: this.pinEl(p.is_cliente ? '#0083C1' : '#e11d48'), anchor: 'bottom' })
+                const isCliente = Boolean(p.is_cliente);
+                const m = new mapboxgl.Marker({ element: this.pinEl(isCliente ? '#0083C1' : '#e11d48'), anchor: 'bottom' })
                     .setLngLat([p.lng, p.lat])
                     .setPopup(new mapboxgl.Popup({ offset: 28 }).setHTML(
-                        `<strong>${p.nome || (p.is_cliente ? 'Cliente' : 'Lead')}</strong>`
-                        + `<br><span style="font-size:12px;color:#64748b">${p.is_cliente ? 'Cliente' : 'Lead'}</span>`,
+                        `<strong>${p.nome || (isCliente ? 'Cliente' : 'Lead')}</strong>`
+                        + `<br><span style="font-size:12px;color:#64748b">${isCliente ? 'Cliente' : 'Lead'}</span>`,
                     ))
                     .addTo(this.mapa);
+                m._prospectaCliente = isCliente;
                 this.markersProspectos.push(m);
             });
 

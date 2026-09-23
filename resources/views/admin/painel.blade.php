@@ -103,7 +103,8 @@
             @endif
             <div class="flex flex-wrap gap-2">
                 <button type="button" class="admin-layer-toggle pointer-events-auto" :data-on="camadas.unidades ? '1' : '0'" @click="toggleCamada('unidades')">Unidades</button>
-                <button type="button" class="admin-layer-toggle pointer-events-auto" :data-on="camadas.prospectos ? '1' : '0'" @click="toggleCamada('prospectos')">Prospectos</button>
+                <button type="button" class="admin-layer-toggle pointer-events-auto" :data-on="camadas.leads ? '1' : '0'" @click="toggleCamada('leads')">Leads</button>
+                <button type="button" class="admin-layer-toggle pointer-events-auto" :data-on="camadas.clientes ? '1' : '0'" @click="toggleCamada('clientes')">Clientes</button>
                 <button type="button" class="admin-layer-toggle pointer-events-auto" :data-on="camadas.visitas ? '1' : '0'" @click="toggleCamada('visitas')">Visitas</button>
                 <button type="button" class="admin-layer-toggle pointer-events-auto" :data-on="camadas.calor ? '1' : '0'" @click="toggleCamada('calor')">Calor</button>
                 <button type="button" class="admin-layer-toggle pointer-events-auto" :data-on="camadas.aoVivo ? '1' : '0'" @click="toggleCamada('aoVivo')">Ao vivo</button>

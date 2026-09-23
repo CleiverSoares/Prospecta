@@ -80,8 +80,8 @@ class DemoMassaRotaTest extends TestCase
         $this->mock(DemoMassaService::class, function ($mock) {
             $mock->shouldReceive('habilitado')->andReturn(true);
             $mock->shouldReceive('gerarClientesMock')->once()->andReturn([
-                'criados' => 12,
-                'clientes_no_mapa' => 12,
+                'criados' => 16,
+                'clientes_no_mapa' => 16,
             ]);
         });
 

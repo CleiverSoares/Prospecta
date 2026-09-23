@@ -94,19 +94,24 @@ class DemoMassaService
      */
     private function clientesMock(): array
     {
+        // Espalhados pelo Brasil (não só RJ) para o Painel ler como rede nacional.
         $base = [
-            ['90010011000101', 'Cliente Mock — Contábil Barra', -22.9995, -43.3650, '22640102', 'Av. das Américas, 3434 — Barra'],
-            ['90010022000112', 'Cliente Mock — Clínica Recreio', -23.0180, -43.4620, '22790701', 'Av. das Américas, 7000 — Recreio'],
-            ['90010033000123', 'Cliente Mock — Mercado Copacabana', -22.9728, -43.1845, '22021000', 'Av. Nossa Sra. de Copacabana, 500'],
-            ['90010044000134', 'Cliente Mock — Hotel Ipanema', -22.9845, -43.2090, '22410003', 'Rua Visconde de Pirajá, 100'],
-            ['90010055000145', 'Cliente Mock — Cowork Botafogo', -22.9525, -43.1835, '22250040', 'Praia de Botafogo, 228'],
-            ['90010066000156', 'Cliente Mock — Loja Centro', -22.9075, -43.1760, '20040020', 'Av. Rio Branco, 100'],
-            ['90010077000167', 'Cliente Mock — Restaurante Lapa', -22.9125, -43.1795, '20230010', 'Rua do Riachuelo, 50'],
-            ['90010088000178', 'Cliente Mock — Oficina São Cristóvão', -22.8990, -43.2215, '20921060', 'Av. Pedro II, 120'],
-            ['90010099000189', 'Cliente Mock — Metalúrgica VR', -22.5220, -44.1010, '27253065', 'Av. Paulo Erlei, 200 — Volta Redonda'],
-            ['90010100000190', 'Cliente Mock — Contábil VR', -22.5250, -44.1060, '27255115', 'Rua 18 A, 80 — Volta Redonda'],
-            ['90010111000101', 'Cliente Mock — Farmácia Leblon', -22.9855, -43.2245, '22440030', 'Av. Ataulfo de Paiva, 500'],
-            ['90010122000112', 'Cliente Mock — Academia Flamengo', -22.9310, -43.1765, '22210030', 'Praia do Flamengo, 100'],
+            ['90010011000101', 'Cliente Mock — Contábil São Paulo', -23.5505, -46.6333, '01310100', 'Av. Paulista, 1000 — São Paulo'],
+            ['90010022000112', 'Cliente Mock — Clínica Campinas', -22.9099, -47.0626, '13010000', 'Av. Francisco Glicério, 800 — Campinas'],
+            ['90010033000123', 'Cliente Mock — Mercado Rio Centro', -22.9068, -43.1729, '20040020', 'Av. Rio Branco, 156 — Rio de Janeiro'],
+            ['90010044000134', 'Cliente Mock — Hotel BH Savassi', -19.9386, -43.9345, '30130100', 'Rua Pernambuco, 1000 — Belo Horizonte'],
+            ['90010055000145', 'Cliente Mock — Cowork Curitiba', -25.4284, -49.2733, '80010000', 'Rua XV de Novembro, 500 — Curitiba'],
+            ['90010066000156', 'Cliente Mock — Loja Porto Alegre', -30.0346, -51.2177, '90010000', 'Av. Borges de Medeiros, 400 — Porto Alegre'],
+            ['90010077000167', 'Cliente Mock — Restaurante Florianópolis', -27.5954, -48.5480, '88010000', 'Rua Felipe Schmidt, 200 — Florianópolis'],
+            ['90010088000178', 'Cliente Mock — Oficina Brasília', -15.7801, -47.9292, '70040902', 'SCS Quadra 2 — Brasília'],
+            ['90010099000189', 'Cliente Mock — Metalúrgica Goiânia', -16.6869, -49.2648, '74003010', 'Av. Goiás, 300 — Goiânia'],
+            ['90010100000190', 'Cliente Mock — Contábil Salvador', -12.9714, -38.5014, '40020000', 'Av. Sete de Setembro, 50 — Salvador'],
+            ['90010111000101', 'Cliente Mock — Farmácia Recife', -8.0476, -34.8770, '50010000', 'Av. Conde da Boa Vista, 100 — Recife'],
+            ['90010122000112', 'Cliente Mock — Academia Fortaleza', -3.7319, -38.5267, '60010000', 'Av. Beira Mar, 2500 — Fortaleza'],
+            ['90010133000123', 'Cliente Mock — Tech Manaus', -3.1190, -60.0217, '69005040', 'Av. Eduardo Ribeiro, 520 — Manaus'],
+            ['90010144000134', 'Cliente Mock — Comércio Belém', -1.4558, -48.4902, '66010000', 'Av. Presidente Vargas, 800 — Belém'],
+            ['90010155000145', 'Cliente Mock — Advocacia Natal', -5.7945, -35.2110, '59010000', 'Av. Rio Branco, 300 — Natal'],
+            ['90010166000156', 'Cliente Mock — Escola Vitória', -20.3155, -40.3128, '29010010', 'Av. Nossa Senhora da Penha, 100 — Vitória'],
         ];
 
         $out = [];
