@@ -75,7 +75,24 @@ export function registrarMapaPainel(Alpine) {
 
         pinEl(cor, pulse = false) {
             const el = document.createElement('div');
-            el.style.cssText = `width:${pulse ? 16 : 12}px;height:${pulse ? 16 : 12}px;border-radius:999px;background:${cor};border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.25)${pulse ? ',0 0 0 6px rgba(0,131,193,.25)' : ''}`;
+            el.className = pulse ? 'mapa-pin mapa-pin--pulse' : 'mapa-pin';
+            el.style.cssText = [
+                'width:28px',
+                'height:36px',
+                'cursor:pointer',
+                'transform-origin:center bottom',
+                'filter:drop-shadow(0 2px 4px rgba(0,0,0,.35))',
+            ].join(';');
+            el.innerHTML = `
+                <svg viewBox="0 0 28 36" width="28" height="36" aria-hidden="true" style="display:block;overflow:visible">
+                    <path fill="${cor}" stroke="#fff" stroke-width="1.6"
+                        d="M14 1.2C7.04 1.2 1.4 6.84 1.4 13.8c0 9.3 12.6 20.8 12.6 20.8S26.6 23.1 26.6 13.8C26.6 6.84 20.96 1.2 14 1.2z"/>
+                    <circle cx="14" cy="13.2" r="4.2" fill="#fff"/>
+                </svg>
+            `;
+            if (pulse) {
+                el.style.animation = 'mapa-pin-pulse 1.6s ease-out infinite';
+            }
             return el;
         },
 
@@ -90,9 +107,9 @@ export function registrarMapaPainel(Alpine) {
             (lista || []).forEach((v) => {
                 if (v.lat == null || v.lng == null) return;
                 const cor = this.corAlerta(v.status || v.alertas?.[0]);
-                const m = new this.mapboxgl.Marker({ element: this.pinEl(cor, true) })
+                const m = new this.mapboxgl.Marker({ element: this.pinEl(cor, true), anchor: 'bottom' })
                     .setLngLat([v.lng, v.lat])
-                    .setPopup(new this.mapboxgl.Popup({ offset: 16, maxWidth: '280px' }).setHTML(
+                    .setPopup(new this.mapboxgl.Popup({ offset: 28, maxWidth: '280px' }).setHTML(
                         this.htmlPopupVendedor(v),
                     ))
                     .addTo(this.mapa);
@@ -404,9 +421,12 @@ export function registrarMapaPainel(Alpine) {
             this.prospectos.forEach((p) => {
                 if (p.lat == null || p.lng == null) return;
                 bounds.extend([p.lng, p.lat]);
-                const m = new mapboxgl.Marker({ element: this.pinEl(p.is_cliente ? '#0083C1' : '#e11d48') })
+                const m = new mapboxgl.Marker({ element: this.pinEl(p.is_cliente ? '#0083C1' : '#e11d48'), anchor: 'bottom' })
                     .setLngLat([p.lng, p.lat])
-                    .setPopup(new mapboxgl.Popup({ offset: 12 }).setHTML(`<strong>${p.nome || 'Lead'}</strong>`))
+                    .setPopup(new mapboxgl.Popup({ offset: 28 }).setHTML(
+                        `<strong>${p.nome || (p.is_cliente ? 'Cliente' : 'Lead')}</strong>`
+                        + `<br><span style="font-size:12px;color:#64748b">${p.is_cliente ? 'Cliente' : 'Lead'}</span>`,
+                    ))
                     .addTo(this.mapa);
                 this.markersProspectos.push(m);
             });
@@ -414,9 +434,9 @@ export function registrarMapaPainel(Alpine) {
             this.visitas.forEach((v) => {
                 if (v.lat == null || v.lng == null) return;
                 bounds.extend([v.lng, v.lat]);
-                const m = new mapboxgl.Marker({ element: this.pinEl('#64748b') })
+                const m = new mapboxgl.Marker({ element: this.pinEl('#64748b'), anchor: 'bottom' })
                     .setLngLat([v.lng, v.lat])
-                    .setPopup(new mapboxgl.Popup({ offset: 12 }).setHTML(`<strong>${v.nome || 'Visita'}</strong><br><span style="font-size:12px">${v.status || ''}</span>`))
+                    .setPopup(new mapboxgl.Popup({ offset: 28 }).setHTML(`<strong>${v.nome || 'Visita'}</strong><br><span style="font-size:12px">${v.status || ''}</span>`))
                     .addTo(this.mapa);
                 this.markersVisitas.push(m);
             });

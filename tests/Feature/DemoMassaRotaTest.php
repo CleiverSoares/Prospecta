@@ -67,5 +67,27 @@ class DemoMassaRotaTest extends TestCase
 
         $this->get(route('admin.demo.index'))->assertRedirect();
         $this->post(route('admin.demo.regenerar'))->assertRedirect();
+        $this->post(route('admin.demo.clientes-mock'))->assertRedirect();
+    }
+
+    public function test_adm_gera_clientes_mock(): void
+    {
+        config(['prospecta.demo_seed_enabled' => true]);
+
+        $adm = User::factory()->create();
+        $adm->assignRole('adm');
+
+        $this->mock(DemoMassaService::class, function ($mock) {
+            $mock->shouldReceive('habilitado')->andReturn(true);
+            $mock->shouldReceive('gerarClientesMock')->once()->andReturn([
+                'criados' => 12,
+                'clientes_no_mapa' => 12,
+            ]);
+        });
+
+        $this->actingAs($adm)
+            ->post(route('admin.demo.clientes-mock'))
+            ->assertRedirect(route('admin.demo.index'))
+            ->assertSessionHas('sucesso');
     }
 }

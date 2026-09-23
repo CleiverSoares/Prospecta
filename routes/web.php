@@ -48,6 +48,7 @@ Route::middleware(['auth', 'permission:admin.acessar'])
         Route::get('/documentacao', DocumentacaoController::class)->name('documentacao');
         Route::get('/demo', [DemoMassaController::class, 'index'])->name('demo.index');
         Route::post('/demo/regenerar-campo', [DemoMassaController::class, 'regenerar'])->name('demo.regenerar');
+        Route::post('/demo/clientes-mock', [DemoMassaController::class, 'clientesMock'])->name('demo.clientes-mock');
         Route::get('/localizacoes/ao-vivo', LocalizacaoAoVivoController::class)->name('localizacoes.ao-vivo');
         Route::get('/localizacoes/{usuario}/trajeto', LocalizacaoTrajetoController::class)
             ->middleware('permission:usuarios.ver')

@@ -1,10 +1,15 @@
 <x-layouts.admin titulo="Demo — mapa ao vivo">
-    <x-slot:subtitulo>Regenera GPS dos vendedores demo sem precisar de artisan no Render</x-slot:subtitulo>
+    <x-slot:subtitulo>Regenera GPS e clientes mock sem artisan no Render</x-slot:subtitulo>
 
     <div class="mx-auto max-w-xl space-y-5">
         @if (session('sucesso'))
             <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900" role="status">
                 {{ session('sucesso') }}
+            </div>
+        @endif
+        @if (session('erro'))
+            <div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900" role="alert">
+                {{ session('erro') }}
             </div>
         @endif
 
@@ -23,6 +28,24 @@
                 </x-admin.botao>
                 <x-admin.botao href="{{ route('admin.painel') }}" variante="secundario">
                     Abrir Painel
+                </x-admin.botao>
+            </form>
+        </section>
+
+        <section class="rounded-2xl border border-white/55 bg-white/90 p-5 shadow-sm sm:p-6">
+            <h2 class="text-lg font-semibold text-ink">Clientes mock</h2>
+            <p class="mt-2 text-sm leading-relaxed text-ink-soft">
+                Gera pins <strong class="font-medium text-ink">azuis</strong> de cliente no mapa (Barra, Zona Sul, Centro, Volta Redonda)
+                para simular carteira no Painel. Não apaga leads vermelhos.
+            </p>
+
+            <form method="POST" action="{{ route('admin.demo.clientes-mock') }}" class="mt-5 flex flex-wrap items-center gap-3">
+                @csrf
+                <x-admin.botao tipo="submit">
+                    Gerar clientes mock
+                </x-admin.botao>
+                <x-admin.botao href="{{ route('admin.painel') }}" variante="secundario">
+                    Ver no mapa
                 </x-admin.botao>
             </form>
         </section>

@@ -60,4 +60,37 @@ class ProspectoRepository
 
         return $prospecto->fresh();
     }
+
+    public function contarClientes(): int
+    {
+        return Prospecto::query()
+            ->where('is_cliente', true)
+            ->whereNotNull('lat')
+            ->whereNotNull('lng')
+            ->count();
+    }
+
+    public function contarPorOrigem(string $origem): int
+    {
+        return Prospecto::query()->where('origem', $origem)->count();
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $lista
+     * @return int quantidade upsertada
+     */
+    public function upsertClientesMock(array $lista): int
+    {
+        $n = 0;
+        foreach ($lista as $dados) {
+            $cnpj = (string) ($dados['cnpj'] ?? '');
+            if ($cnpj === '') {
+                continue;
+            }
+            $this->upsertPorCnpj($cnpj, $dados);
+            $n++;
+        }
+
+        return $n;
+    }
 }

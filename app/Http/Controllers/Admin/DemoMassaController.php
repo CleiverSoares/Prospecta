@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\DemoMassaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
+use Throwable;
 
 class DemoMassaController extends Controller
 {
@@ -26,7 +27,15 @@ class DemoMassaController extends Controller
     {
         $this->garantirHabilitado();
 
-        $resumo = $this->demoMassaService->regenerarCampo();
+        try {
+            $resumo = $this->demoMassaService->regenerarCampo();
+        } catch (Throwable $e) {
+            report($e);
+
+            return redirect()
+                ->route('admin.demo.index')
+                ->with('erro', 'Falha ao regenerar o mapa ao vivo. Tente de novo em instantes.');
+        }
 
         return redirect()
             ->route('admin.demo.index')
@@ -37,6 +46,24 @@ class DemoMassaController extends Controller
                     $resumo['usuarios_demo'],
                     $resumo['vendedores_ao_vivo'],
                     $resumo['localizacoes_recentes'],
+                ),
+            );
+    }
+
+    public function clientesMock(): RedirectResponse
+    {
+        $this->garantirHabilitado();
+
+        $resumo = $this->demoMassaService->gerarClientesMock();
+
+        return redirect()
+            ->route('admin.demo.index')
+            ->with(
+                'sucesso',
+                sprintf(
+                    'Clientes mock no mapa: %d pins upsertados · %d clientes com coordenadas no Painel.',
+                    $resumo['criados'],
+                    $resumo['clientes_no_mapa'],
                 ),
             );
     }
