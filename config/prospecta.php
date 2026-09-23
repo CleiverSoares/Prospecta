@@ -84,4 +84,17 @@ return [
     */
     'demo_seed_enabled' => filter_var(env('DEMO_SEED_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
 
+    /*
+    | local = disco do container (some no Render sleep)
+    | supabase = Storage REST (persiste; bucket público)
+    */
+    'storage' => [
+        'driver' => env('PROSPECTA_STORAGE_DRIVER', 'local'),
+        'supabase' => [
+            'url' => env('SUPABASE_URL'),
+            'service_role_key' => env('SUPABASE_SERVICE_ROLE_KEY'),
+            'bucket' => env('SUPABASE_STORAGE_BUCKET', 'prospecta'),
+        ],
+    ],
+
 ];

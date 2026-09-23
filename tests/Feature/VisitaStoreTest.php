@@ -22,6 +22,11 @@ class VisitaStoreTest extends TestCase
         parent::setUp();
         $this->seed(PapeisEPermissoesSeeder::class);
         Storage::fake('local');
+        Storage::fake('public');
+        $this->withoutMiddleware([
+            \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
+            \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
+        ]);
     }
 
     public function test_vendedor_salva_visita_com_foto_e_audio(): void
@@ -36,14 +41,14 @@ class VisitaStoreTest extends TestCase
 
         $this->actingAs($vendedor)
             ->withSession($this->sessionSetup())
-            ->post(route('app.visitas.store'), [
+            ->postJson(route('app.visitas.store'), [
                 'prospecto_id' => $prospecto->id,
                 'status' => StatusVisita::Feita->value,
                 'checkin_lat' => -22.9001,
                 'checkin_lng' => -43.2001,
                 'foto' => UploadedFile::fake()->image('fachada.jpg'),
                 'audio' => UploadedFile::fake()->create('resumo.webm', 20, 'audio/webm'),
-            ], ['Accept' => 'application/json'])
+            ])
             ->assertCreated()
             ->assertJsonPath('visita.status', StatusVisita::Feita->value);
 
@@ -66,14 +71,14 @@ class VisitaStoreTest extends TestCase
 
         $this->actingAs($vendedor)
             ->withSession($this->sessionSetup())
-            ->post(route('app.visitas.store'), [
+            ->postJson(route('app.visitas.store'), [
                 'prospecto_id' => $prospecto->id,
                 'status' => StatusVisita::Feita->value,
                 'checkin_lat' => -22.95,
                 'checkin_lng' => -43.25,
                 'foto' => UploadedFile::fake()->image('fachada.jpg'),
                 'audio' => UploadedFile::fake()->create('resumo.webm', 20, 'audio/webm'),
-            ], ['Accept' => 'application/json'])
+            ])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['checkin_lat']);
     }

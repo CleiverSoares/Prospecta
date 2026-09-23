@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Storage;
+use App\Services\ArquivoMidiaService;
 use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable([
@@ -58,7 +58,7 @@ class User extends Authenticatable
                 return null;
             }
 
-            return Storage::disk('public')->url($this->foto_path);
+            return app(ArquivoMidiaService::class)->urlPublica($this->foto_path);
         });
     }
 

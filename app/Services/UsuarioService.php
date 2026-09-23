@@ -7,11 +7,14 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 
 class UsuarioService
 {
+    public function __construct(
+        private readonly ArquivoMidiaService $arquivoMidiaService,
+    ) {}
+
     /**
      * @param  array{q?: string|null, papel?: string|null, incluir_inativos?: bool}  $filtros
      */
@@ -160,10 +163,8 @@ class UsuarioService
 
     private function salvarFoto(User $usuario, UploadedFile $arquivo, ?string $anterior = null): string
     {
-        if (filled($anterior)) {
-            Storage::disk('public')->delete($anterior);
-        }
+        $this->arquivoMidiaService->apagar($anterior);
 
-        return $arquivo->store('usuarios/fotos', 'public');
+        return $this->arquivoMidiaService->salvar($arquivo, 'usuarios/fotos');
     }
 }

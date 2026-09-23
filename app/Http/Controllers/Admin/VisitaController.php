@@ -5,13 +5,18 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Visita;
+use App\Services\ArquivoMidiaService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class VisitaController extends Controller
 {
+    public function __construct(
+        private readonly ArquivoMidiaService $arquivoMidiaService,
+    ) {}
+
     public function index(Request $request): View
     {
         $query = Visita::query()
@@ -65,28 +70,22 @@ class VisitaController extends Controller
         ]);
     }
 
-    public function foto(Visita $visita): StreamedResponse
+    public function foto(Visita $visita): StreamedResponse|RedirectResponse
     {
         $this->autorizarVisita($visita);
 
-        abort_unless($visita->caminho_foto && Storage::disk('local')->exists($visita->caminho_foto), 404);
+        abort_unless($visita->caminho_foto && $this->arquivoMidiaService->existe($visita->caminho_foto), 404);
 
-        return Storage::disk('local')->response($visita->caminho_foto, null, [
-            'Content-Type' => 'image/jpeg',
-            'Cache-Control' => 'private, max-age=3600',
-        ]);
+        return $this->arquivoMidiaService->resposta($visita->caminho_foto, 'image/jpeg');
     }
 
-    public function audio(Visita $visita): StreamedResponse
+    public function audio(Visita $visita): StreamedResponse|RedirectResponse
     {
         $this->autorizarVisita($visita);
 
-        abort_unless($visita->caminho_audio && Storage::disk('local')->exists($visita->caminho_audio), 404);
+        abort_unless($visita->caminho_audio && $this->arquivoMidiaService->existe($visita->caminho_audio), 404);
 
-        return Storage::disk('local')->response($visita->caminho_audio, null, [
-            'Content-Type' => 'audio/wav',
-            'Cache-Control' => 'private, max-age=3600',
-        ]);
+        return $this->arquivoMidiaService->resposta($visita->caminho_audio, 'audio/webm');
     }
 
     private function autorizarVisita(Visita $visita): void

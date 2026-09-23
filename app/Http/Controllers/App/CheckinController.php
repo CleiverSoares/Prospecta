@@ -4,6 +4,7 @@ namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\App\SalvarVisitaRequest;
+use App\Services\ArquivoMidiaService;
 use App\Services\VisitaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
@@ -12,6 +13,7 @@ class CheckinController extends Controller
 {
     public function __construct(
         private readonly VisitaService $visitaService,
+        private readonly ArquivoMidiaService $arquivoMidiaService,
     ) {}
 
     public function __invoke(): View
@@ -28,11 +30,11 @@ class CheckinController extends Controller
         $audioPath = null;
 
         if ($request->hasFile('foto')) {
-            $fotoPath = $request->file('foto')->store('visitas/fotos', 'local');
+            $fotoPath = $this->arquivoMidiaService->salvar($request->file('foto'), 'visitas/fotos');
         }
 
         if ($request->hasFile('audio')) {
-            $audioPath = $request->file('audio')->store('visitas/audios', 'local');
+            $audioPath = $this->arquivoMidiaService->salvar($request->file('audio'), 'visitas/audios');
         }
 
         $visita = $this->visitaService->criar([
