@@ -88,8 +88,9 @@
             <div class="admin-mapa-legend pointer-events-none">
                 <span><i class="admin-mapa-legend__dot" style="background:#e11d48"></i>Lead</span>
                 <span><i class="admin-mapa-legend__dot" style="background:#0083C1"></i>Cliente</span>
-                <span><i class="admin-mapa-legend__dot" style="background:#64748b"></i>Visita</span>
-                <span><i class="admin-mapa-legend__dot" style="background:#0ea5e9"></i>Trajeto</span>
+                <span><i class="admin-mapa-legend__dot" style="background:#16a34a"></i>Visita feita</span>
+                <span><i class="admin-mapa-legend__dot" style="background:#f59e0b"></i>Retorno</span>
+                <span><i class="admin-mapa-legend__dot" style="background:#0284c7"></i>Trajeto</span>
                 <span class="w-full basis-full text-[0.65rem] text-ink-faint">Ao vivo (GPS do vendedor):</span>
                 <span><i class="admin-mapa-legend__dot" style="background:#22c55e"></i>Ok</span>
                 <span><i class="admin-mapa-legend__dot" style="background:#f59e0b"></i>Sem sinal</span>

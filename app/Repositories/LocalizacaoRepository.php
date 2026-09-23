@@ -124,15 +124,18 @@ class LocalizacaoRepository
             'lat' => $ultimo['lat'] + 0.0002,
             'lng' => $ultimo['lng'] + 0.00015,
             'em' => now()->subMinutes(1),
+            'parado' => false,
         ];
 
         foreach ($pontos as $idx => $p) {
+            $ultimoIdx = array_key_last($pontos);
             Localizacao::query()->create([
                 'user_id' => $userId,
                 'lat' => $p['lat'],
                 'lng' => $p['lng'],
                 'precisao' => 8 + ($idx % 5),
-                'velocidade' => $idx === array_key_last($pontos) ? 0 : 3.8 + ($idx % 3),
+                // Último ping “ao vivo” com velocidade>0 evita falso alerta “parado” (roxo).
+                'velocidade' => $idx === $ultimoIdx ? 4.2 : 3.8 + ($idx % 3),
                 'direcao' => 40 + (($idx * 17) % 280),
                 'capturado_em' => $p['em'],
             ]);

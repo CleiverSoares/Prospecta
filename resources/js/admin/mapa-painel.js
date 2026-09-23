@@ -83,27 +83,82 @@ export function registrarMapaPainel(Alpine) {
             });
         },
 
-        pinEl(cor, pulse = false) {
+        pinEl(cor, opts = {}) {
+            const pulse = Boolean(opts.pulse);
+            const tipo = opts.tipo || 'dot';
             const el = document.createElement('div');
             el.className = pulse ? 'mapa-pin mapa-pin--pulse' : 'mapa-pin';
-            el.style.cssText = [
-                'width:28px',
-                'height:36px',
-                'cursor:pointer',
-                'transform-origin:center bottom',
-                'filter:drop-shadow(0 2px 4px rgba(0,0,0,.35))',
-            ].join(';');
+            el.dataset.tipo = tipo;
+            el.style.setProperty('--pin-cor', cor);
             el.innerHTML = `
-                <svg viewBox="0 0 28 36" width="28" height="36" aria-hidden="true" style="display:block;overflow:visible">
-                    <path fill="${cor}" stroke="#fff" stroke-width="1.6"
-                        d="M14 1.2C7.04 1.2 1.4 6.84 1.4 13.8c0 9.3 12.6 20.8 12.6 20.8S26.6 23.1 26.6 13.8C26.6 6.84 20.96 1.2 14 1.2z"/>
-                    <circle cx="14" cy="13.2" r="4.2" fill="#fff"/>
+                <svg viewBox="0 0 32 42" width="32" height="42" aria-hidden="true">
+                    <path fill="${cor}" stroke="#fff" stroke-width="2"
+                        d="M16 1.5C8.27 1.5 2 7.77 2 15.5c0 10.6 14 24.5 14 24.5s14-13.9 14-24.5C30 7.77 23.73 1.5 16 1.5z"/>
+                    <circle cx="16" cy="15" r="7.2" fill="#fff"/>
+                    ${this.pinIconeSvg(tipo, cor)}
                 </svg>
             `;
-            if (pulse) {
-                el.style.animation = 'mapa-pin-pulse 1.6s ease-out infinite';
-            }
             return el;
+        },
+
+        pinIconeSvg(tipo, cor) {
+            if (tipo === 'cliente') {
+                return `<path fill="${cor}" d="M12.2 18.2V12.8h2.1v2.1h3.4V12.8h2.1v5.4h-1.7v-2.2h-2.2v2.2h-3.7z"/>`;
+            }
+            if (tipo === 'lead') {
+                return `<circle cx="16" cy="15" r="3.1" fill="${cor}"/>`;
+            }
+            if (tipo === 'feita') {
+                return `<path fill="${cor}" stroke="${cor}" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M12.2 15.1l2.4 2.4 5.2-5.2"/>`;
+            }
+            if (tipo === 'retorno') {
+                return `<path fill="none" stroke="${cor}" stroke-width="1.8" stroke-linecap="round" d="M13 12.2a4.2 4.2 0 1 1-.2 5.6M12.2 11.2v2.6h2.6"/>`;
+            }
+            if (tipo === 'vivo') {
+                return `<circle cx="16" cy="14.2" r="2.4" fill="${cor}"/><path fill="${cor}" d="M12.4 19.2c0-2 1.6-3.4 3.6-3.4s3.6 1.4 3.6 3.4"/>`;
+            }
+            return `<circle cx="16" cy="15" r="2.6" fill="${cor}"/>`;
+        },
+
+        corVisita(status) {
+            const s = String(status || '').toUpperCase();
+            if (s === 'FEITA') return '#16a34a';
+            if (s === 'RETORNO') return '#f59e0b';
+            if (s === 'SEM_NINGUEM') return '#94a3b8';
+            return '#64748b';
+        },
+
+        tipoVisita(status) {
+            const s = String(status || '').toUpperCase();
+            if (s === 'FEITA') return 'feita';
+            if (s === 'RETORNO') return 'retorno';
+            return 'dot';
+        },
+
+        popupHtml(titulo, subtitulo) {
+            return `<div class="mapa-popup-body">
+                <strong>${this.escaparHtml(titulo || '')}</strong>
+                ${subtitulo ? `<span>${this.escaparHtml(subtitulo)}</span>` : ''}
+            </div>`;
+        },
+
+        anexarPopup(marker, html) {
+            const popup = new this.mapboxgl.Popup({
+                offset: 36,
+                maxWidth: '260px',
+                closeButton: true,
+                closeOnClick: true,
+                className: 'mapa-popup',
+            }).setHTML(html);
+
+            marker.setPopup(popup);
+            marker.getElement()?.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                if (this._popupAberto && this._popupAberto !== popup) {
+                    this._popupAberto.remove();
+                }
+                this._popupAberto = popup;
+            });
         },
 
         limparAoVivo() {
@@ -115,14 +170,15 @@ export function registrarMapaPainel(Alpine) {
             if (!this.mapa || !this.mapboxgl) return;
             this.limparAoVivo();
             (lista || []).forEach((v) => {
-                if (v.lat == null || v.lng == null) return;
+                if (!this.coordNoBrasil(v.lat, v.lng)) return;
                 const cor = this.corAlerta(v.status || v.alertas?.[0]);
-                const m = new this.mapboxgl.Marker({ element: this.pinEl(cor, true), anchor: 'bottom' })
+                const m = new this.mapboxgl.Marker({
+                    element: this.pinEl(cor, { pulse: true, tipo: 'vivo' }),
+                    anchor: 'bottom',
+                })
                     .setLngLat([v.lng, v.lat])
-                    .setPopup(new this.mapboxgl.Popup({ offset: 28, maxWidth: '280px' }).setHTML(
-                        this.htmlPopupVendedor(v),
-                    ))
                     .addTo(this.mapa);
+                this.anexarPopup(m, this.htmlPopupVendedor(v));
                 m.getElement()?.addEventListener('click', () => this.carregarTrajeto(v.user_id));
                 this.markersAoVivo.push(m);
             });
@@ -130,6 +186,18 @@ export function registrarMapaPainel(Alpine) {
             if (this.filtros?.vendedor_id) {
                 this.carregarTrajeto(this.filtros.vendedor_id);
             }
+        },
+
+        /** Evita pin fantasma fora do país / NaN no canto da UI. */
+        coordNoBrasil(lat, lng) {
+            const la = Number(lat);
+            const lo = Number(lng);
+            return Number.isFinite(la)
+                && Number.isFinite(lo)
+                && la <= 6
+                && la >= -34
+                && lo <= -30
+                && lo >= -75;
         },
 
         corAlerta(status) {
@@ -171,9 +239,10 @@ export function registrarMapaPainel(Alpine) {
                     type: 'line',
                     source: 'trajeto-vendedor',
                     paint: {
-                        'line-color': '#0ea5e9',
-                        'line-width': 3,
-                        'line-opacity': 0.85,
+                        'line-color': '#0284c7',
+                        'line-width': 4.5,
+                        'line-opacity': 0.92,
+                        'line-blur': 0.2,
                     },
                 });
             }
@@ -290,6 +359,8 @@ export function registrarMapaPainel(Alpine) {
                     center: [-43.5, -22.7],
                     zoom: 8,
                     attributionControl: true,
+                    // Globo + markers DOM: pin “voa” pro canto da UI no zoom nacional.
+                    projection: 'mercator',
                 });
                 this.mapa.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
 
@@ -429,30 +500,42 @@ export function registrarMapaPainel(Alpine) {
             }
 
             this.prospectos.forEach((p) => {
-                if (p.lat == null || p.lng == null) return;
+                if (!this.coordNoBrasil(p.lat, p.lng)) return;
                 // Bounds do filtro por vendedor = check-ins + ao vivo (não a rede nacional).
                 if (!this.filtros?.vendedor_id) {
                     bounds.extend([p.lng, p.lat]);
                 }
                 const isCliente = Boolean(p.is_cliente);
-                const m = new mapboxgl.Marker({ element: this.pinEl(isCliente ? '#0083C1' : '#e11d48'), anchor: 'bottom' })
+                const m = new mapboxgl.Marker({
+                    element: this.pinEl(isCliente ? '#0083C1' : '#e11d48', {
+                        tipo: isCliente ? 'cliente' : 'lead',
+                    }),
+                    anchor: 'bottom',
+                })
                     .setLngLat([p.lng, p.lat])
-                    .setPopup(new mapboxgl.Popup({ offset: 28 }).setHTML(
-                        `<strong>${p.nome || (isCliente ? 'Cliente' : 'Lead')}</strong>`
-                        + `<br><span style="font-size:12px;color:#64748b">${isCliente ? 'Cliente' : 'Lead'}</span>`,
-                    ))
                     .addTo(this.mapa);
+                this.anexarPopup(
+                    m,
+                    this.popupHtml(p.nome || (isCliente ? 'Cliente' : 'Lead'), isCliente ? 'Cliente' : 'Lead'),
+                );
                 m._prospectaCliente = isCliente;
                 this.markersProspectos.push(m);
             });
 
             this.visitas.forEach((v) => {
-                if (v.lat == null || v.lng == null) return;
+                if (!this.coordNoBrasil(v.lat, v.lng)) return;
                 bounds.extend([v.lng, v.lat]);
-                const m = new mapboxgl.Marker({ element: this.pinEl('#64748b'), anchor: 'bottom' })
+                const cor = this.corVisita(v.status);
+                const m = new mapboxgl.Marker({
+                    element: this.pinEl(cor, { tipo: this.tipoVisita(v.status) }),
+                    anchor: 'bottom',
+                })
                     .setLngLat([v.lng, v.lat])
-                    .setPopup(new mapboxgl.Popup({ offset: 28 }).setHTML(`<strong>${v.nome || 'Visita'}</strong><br><span style="font-size:12px">${v.status || ''}</span>`))
                     .addTo(this.mapa);
+                this.anexarPopup(
+                    m,
+                    this.popupHtml(v.nome || 'Visita', v.status || 'Visita'),
+                );
                 this.markersVisitas.push(m);
             });
 
