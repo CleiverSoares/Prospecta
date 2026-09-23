@@ -15,7 +15,15 @@ export function registrarMapaPainel(Alpine) {
         podeCriarUnidade: Boolean(config.podeCriarUnidade),
         filtros: config.filtros || {},
         janelaMinutos: config.janelaMinutos || 15,
-        camadas: { unidades: true, leads: true, clientes: true, visitas: true, calor: false, aoVivo: true },
+        // Com vendedor filtrado, leads/clientes nacionais sumiriam o GPS do cara no mapa.
+        camadas: {
+            unidades: true,
+            leads: !config.filtros?.vendedor_id,
+            clientes: !config.filtros?.vendedor_id,
+            visitas: true,
+            calor: false,
+            aoVivo: true,
+        },
         erro: '',
         carregando: true,
         selecionando: false,
@@ -422,7 +430,10 @@ export function registrarMapaPainel(Alpine) {
 
             this.prospectos.forEach((p) => {
                 if (p.lat == null || p.lng == null) return;
-                bounds.extend([p.lng, p.lat]);
+                // Bounds do filtro por vendedor = check-ins + ao vivo (não a rede nacional).
+                if (!this.filtros?.vendedor_id) {
+                    bounds.extend([p.lng, p.lat]);
+                }
                 const isCliente = Boolean(p.is_cliente);
                 const m = new mapboxgl.Marker({ element: this.pinEl(isCliente ? '#0083C1' : '#e11d48'), anchor: 'bottom' })
                     .setLngLat([p.lng, p.lat])
