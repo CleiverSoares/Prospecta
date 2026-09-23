@@ -32,8 +32,11 @@ Abra **http://127.0.0.1:8000** (HTTP, não HTTPS).
 | `APP_DEBUG` | `false` |
 | `APP_URL` | URL do serviço (`https://….onrender.com`) |
 | `LOG_CHANNEL` | `stderr` |
-| `DB_CONNECTION` | `pgsql` (ou `mysql`) |
+| `DB_CONNECTION` | `pgsql` |
+| `DB_URL` | **Internal Database URL** do Postgres no Render (ou `DATABASE_URL`) |
 | Mapbox / Google / etc. | iguais ao `.env` local |
+
+**Não** coloque a URL `postgresql://…` em `DB_HOST` — isso quebra o DNS. Ou usa `DB_URL`/`DATABASE_URL`, ou campos separados (`DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`).
 
 5. Health check: `/up`. O entrypoint roda `migrate --force` no boot.
 
