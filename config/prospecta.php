@@ -78,4 +78,10 @@ return [
 
     'meta_visitas_dia' => (int) env('META_VISITAS_DIA', 8),
 
+    /*
+    | Portfolio / Render: habilita GET/POST /admin/demo para regenerar GPS ao vivo
+    | sem artisan CLI. Manter false em produção real.
+    */
+    'demo_seed_enabled' => filter_var(env('DEMO_SEED_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
+
 ];

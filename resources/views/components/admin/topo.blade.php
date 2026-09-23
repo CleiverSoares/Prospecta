@@ -101,6 +101,16 @@
                     'text-ink-soft' => ! request()->routeIs('admin.documentacao'),
                 ])
             >Docs</a>
+            @if (config('prospecta.demo_seed_enabled'))
+                <a
+                    href="{{ route('admin.demo.index') }}"
+                    data-ativo="{{ request()->routeIs('admin.demo.*') ? '1' : '0' }}"
+                    @class([
+                        'admin-nav-link whitespace-nowrap rounded-full px-3 py-1.5 text-sm',
+                        'text-ink-soft' => ! request()->routeIs('admin.demo.*'),
+                    ])
+                >Demo</a>
+            @endif
         @endcan
     </nav>
     @endunless

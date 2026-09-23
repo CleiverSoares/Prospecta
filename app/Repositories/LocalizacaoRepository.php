@@ -57,4 +57,20 @@ class LocalizacaoRepository
             ->orderBy('capturado_em')
             ->get(['id', 'user_id', 'lat', 'lng', 'velocidade', 'capturado_em']);
     }
+
+    public function contarRecentes(int $minutos = 15): int
+    {
+        return Localizacao::query()
+            ->where('capturado_em', '>=', now()->subMinutes($minutos))
+            ->count();
+    }
+
+    public function contarVendedoresComSinal(int $minutos = 15): int
+    {
+        return Localizacao::query()
+            ->where('capturado_em', '>=', now()->subMinutes($minutos))
+            ->pluck('user_id')
+            ->unique()
+            ->count();
+    }
 }

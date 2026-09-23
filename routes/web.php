@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\DemoMassaController;
 use App\Http\Controllers\Admin\DocumentacaoController;
 use App\Http\Controllers\Admin\IntegracoesController;
 use App\Http\Controllers\Admin\AgendaDiaController;
@@ -45,6 +46,8 @@ Route::middleware(['auth', 'permission:admin.acessar'])
         Route::get('/agenda', AgendaDiaController::class)->name('agenda');
         Route::get('/integracoes', IntegracoesController::class)->name('integracoes');
         Route::get('/documentacao', DocumentacaoController::class)->name('documentacao');
+        Route::get('/demo', [DemoMassaController::class, 'index'])->name('demo.index');
+        Route::post('/demo/regenerar-campo', [DemoMassaController::class, 'regenerar'])->name('demo.regenerar');
         Route::get('/localizacoes/ao-vivo', LocalizacaoAoVivoController::class)->name('localizacoes.ao-vivo');
         Route::get('/localizacoes/{usuario}/trajeto', LocalizacaoTrajetoController::class)
             ->middleware('permission:usuarios.ver')

@@ -65,6 +65,16 @@
             'icone' => 'doc',
         ],
     ];
+
+    if (config('prospecta.demo_seed_enabled')) {
+        $itens[] = [
+            'rotulo' => 'Demo ao vivo',
+            'rota' => 'admin.demo.index',
+            'ativo' => request()->routeIs('admin.demo.*'),
+            'permissao' => 'admin.acessar',
+            'icone' => 'mapa',
+        ];
+    }
 @endphp
 
 <aside class="admin-sidebar-glass hidden w-[15.5rem] shrink-0 flex-col border-r border-white/40 bg-white/70 backdrop-blur-xl lg:flex">
