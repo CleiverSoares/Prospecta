@@ -8,6 +8,13 @@
             'icone' => 'mapa',
         ],
         [
+            'rotulo' => 'Agenda',
+            'rota' => 'admin.agenda',
+            'ativo' => request()->routeIs('admin.agenda'),
+            'permissao' => 'visitas.ver',
+            'icone' => 'visita',
+        ],
+        [
             'rotulo' => 'Visitas',
             'rota' => 'admin.visitas.index',
             'ativo' => request()->routeIs('admin.visitas.*'),
@@ -24,7 +31,15 @@
         [
             'rotulo' => 'Usuários',
             'rota' => 'admin.usuarios.index',
-            'ativo' => request()->routeIs('admin.usuarios.*'),
+            'ativo' => request()->routeIs('admin.usuarios.*') && request('papel') !== 'vendedor',
+            'permissao' => 'usuarios.ver',
+            'icone' => 'equipe',
+        ],
+        [
+            'rotulo' => 'Vendedores',
+            'rota' => 'admin.usuarios.index',
+            'params' => ['papel' => 'vendedor'],
+            'ativo' => request()->routeIs('admin.usuarios.*') && request('papel') === 'vendedor',
             'permissao' => 'usuarios.ver',
             'icone' => 'equipe',
         ],
@@ -58,7 +73,7 @@
         @foreach ($itens as $item)
             @can($item['permissao'])
                 <a
-                    href="{{ route($item['rota']) }}"
+                    href="{{ isset($item['params']) ? route($item['rota'], $item['params']) : route($item['rota']) }}"
                     data-ativo="{{ $item['ativo'] ? '1' : '0' }}"
                     @class([
                         'admin-nav-link rounded-2xl px-3.5 py-2.5 text-sm',

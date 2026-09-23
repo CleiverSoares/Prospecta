@@ -73,6 +73,7 @@ class PainelService
             ->map(fn (Visita $v) => [
                 'nome' => $v->usuario?->name ?? '—',
                 'checkins' => (int) $v->total,
+                'meta' => (int) config('prospecta.meta_visitas_dia', 8),
             ])
             ->all();
 

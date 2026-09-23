@@ -8,7 +8,9 @@ use App\Models\Prospecto;
 use App\Models\Unidade;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class DemoSeeder extends Seeder
 {
@@ -99,6 +101,7 @@ class DemoSeeder extends Seeder
                 'gestor_id' => $gestor->id,
                 'cep_base_inicio' => '22010000',
                 'cep_base_fim' => '22080000',
+                'foto_path' => $this->gerarFotoUsuario('Vendedor Copacabana', 'copacabana'),
             ],
         );
         $vendedor->syncRoles(['vendedor']);
@@ -111,6 +114,7 @@ class DemoSeeder extends Seeder
                 'email_verified_at' => now(),
                 'unidade_id' => null,
                 'gestor_id' => $gestor->id,
+                'foto_path' => $this->gerarFotoUsuario('Vendedor Área Livre', 'livre'),
             ],
         );
         $vendedorLivre->syncRoles(['vendedor']);
@@ -161,5 +165,32 @@ class DemoSeeder extends Seeder
         );
 
         unset($repSul);
+    }
+
+    private function gerarFotoUsuario(string $nome, string $slug): string
+    {
+        $path = 'usuarios/fotos/'.$slug.'.jpg';
+        $full = Storage::disk('public')->path($path);
+        File::ensureDirectoryExists(dirname($full));
+
+        if (function_exists('imagecreatetruecolor')) {
+            $img = imagecreatetruecolor(256, 256);
+            $bg = imagecolorallocate($img, 14, 165, 233);
+            $fg = imagecolorallocate($img, 7, 16, 24);
+            imagefilledrectangle($img, 0, 0, 256, 256, $bg);
+            $partes = preg_split('/\s+/', trim($nome)) ?: ['V'];
+            $iniciais = mb_strtoupper(
+                mb_substr($partes[0], 0, 1).(isset($partes[1]) ? mb_substr($partes[1], 0, 1) : '')
+            );
+            imagestring($img, 5, 108, 120, $iniciais, $fg);
+            imagejpeg($img, $full, 88);
+            imagedestroy($img);
+        } else {
+            Storage::disk('public')->put($path, base64_decode(
+                '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAGfAP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAQUCf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8Bf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8Bf//Z'
+            ));
+        }
+
+        return $path;
     }
 }

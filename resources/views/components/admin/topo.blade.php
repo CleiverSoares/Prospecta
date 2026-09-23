@@ -58,6 +58,16 @@
                 ])
             >Unidades</a>
         @endcan
+        @can('visitas.ver')
+            <a
+                href="{{ route('admin.agenda') }}"
+                data-ativo="{{ request()->routeIs('admin.agenda') ? '1' : '0' }}"
+                @class([
+                    'admin-nav-link whitespace-nowrap rounded-full px-3 py-1.5 text-sm',
+                    'text-ink-soft' => ! request()->routeIs('admin.agenda'),
+                ])
+            >Agenda</a>
+        @endcan
         @can('usuarios.ver')
             <a
                 href="{{ route('admin.usuarios.index') }}"
@@ -67,6 +77,10 @@
                     'text-ink-soft' => ! request()->routeIs('admin.usuarios.*'),
                 ])
             >Usuários</a>
+            <a
+                href="{{ route('admin.usuarios.index', ['papel' => 'vendedor']) }}"
+                class="admin-nav-link whitespace-nowrap rounded-full px-3 py-1.5 text-sm text-ink-soft"
+            >Vendedores</a>
         @endcan
         @can('papeis.gerenciar')
             <a

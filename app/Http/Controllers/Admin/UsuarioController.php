@@ -18,29 +18,16 @@ class UsuarioController extends Controller
 
     public function index(): View
     {
-        $query = User::query()
-            ->with(['unidade', 'gestor', 'roles'])
-            ->orderBy('name');
-
-        if (request()->user()?->hasRole('gestor') && ! request()->user()?->hasRole('adm')) {
-            $unidadeId = request()->user()->unidade_id;
-            $query->where(function ($q) use ($unidadeId) {
-                $q->where('unidade_id', $unidadeId)
-                    ->orWhere('gestor_id', request()->user()->id)
-                    ->orWhere('id', request()->user()->id);
-            });
-        }
-
-        if (request()->filled('q')) {
-            $termo = '%'.request('q').'%';
-            $query->where(function ($q) use ($termo) {
-                $q->where('name', 'like', $termo)
-                    ->orWhere('email', 'like', $termo);
-            });
-        }
-
         return view('admin.usuarios.index', [
-            'usuarios' => $query->paginate(20)->withQueryString(),
+            'usuarios' => $this->usuarioService->listar(
+                [
+                    'q' => request('q'),
+                    'papel' => request('papel'),
+                    'incluir_inativos' => request()->boolean('incluir_inativos'),
+                ],
+                request()->user(),
+            ),
+            'papelFiltro' => request('papel'),
         ]);
     }
 
@@ -74,6 +61,26 @@ class UsuarioController extends Controller
         return redirect()
             ->route('admin.usuarios.edit', $usuario)
             ->with('status', 'Usuário atualizado.');
+    }
+
+    public function desativar(User $usuario): RedirectResponse
+    {
+        abort_if($usuario->id === request()->user()?->id, 422, 'Você não pode desativar a si mesmo.');
+
+        $this->usuarioService->desativar($usuario);
+
+        return redirect()
+            ->route('admin.usuarios.index')
+            ->with('status', 'Usuário desativado.');
+    }
+
+    public function reativar(User $usuario): RedirectResponse
+    {
+        $this->usuarioService->reativar($usuario);
+
+        return redirect()
+            ->route('admin.usuarios.edit', $usuario)
+            ->with('status', 'Usuário reativado.');
     }
 
     /**

@@ -29,7 +29,10 @@ class LocalizacaoRepository
 
         $query = Localizacao::query()
             ->select('localizacoes.*')
-            ->with(['usuario:id,name,unidade_id,gestor_id'])
+            ->with([
+                'usuario:id,name,unidade_id,gestor_id,foto_path',
+                'usuario.unidade:id,nome,tipo,poligono_geojson',
+            ])
             ->joinSub($sub, 'ult', fn ($join) => $join->on('localizacoes.id', '=', 'ult.max_id'));
 
         if ($vendedorId) {
@@ -41,5 +44,17 @@ class LocalizacaoRepository
         }
 
         return $query->get();
+    }
+
+    /**
+     * @return Collection<int, Localizacao>
+     */
+    public function historicoDoUsuario(int $userId, int $minutos = 120): Collection
+    {
+        return Localizacao::query()
+            ->where('user_id', $userId)
+            ->where('capturado_em', '>=', now()->subMinutes($minutos))
+            ->orderBy('capturado_em')
+            ->get(['id', 'user_id', 'lat', 'lng', 'velocidade', 'capturado_em']);
     }
 }

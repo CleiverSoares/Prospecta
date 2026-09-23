@@ -9,6 +9,7 @@ export function registrarMapaPainel(Alpine) {
         visitas: Array.isArray(config.visitas) ? config.visitas : [],
         aoVivo: Array.isArray(config.aoVivo) ? config.aoVivo : [],
         aoVivoUrl: config.aoVivoUrl || '',
+        trajetoUrlBase: config.trajetoUrlBase || '',
         rascunhoUrl: config.rascunhoUrl || '',
         csrf: config.csrf || '',
         podeCriarUnidade: Boolean(config.podeCriarUnidade),
@@ -88,15 +89,127 @@ export function registrarMapaPainel(Alpine) {
             this.limparAoVivo();
             (lista || []).forEach((v) => {
                 if (v.lat == null || v.lng == null) return;
-                const m = new this.mapboxgl.Marker({ element: this.pinEl('#22c55e', true) })
+                const cor = this.corAlerta(v.status || v.alertas?.[0]);
+                const m = new this.mapboxgl.Marker({ element: this.pinEl(cor, true) })
                     .setLngLat([v.lng, v.lat])
-                    .setPopup(new this.mapboxgl.Popup({ offset: 14 }).setHTML(
-                        `<strong>${v.nome || 'Vendedor'}</strong><br><span style="font-size:12px">há ${v.idade_segundos ?? 0}s</span>`,
+                    .setPopup(new this.mapboxgl.Popup({ offset: 16, maxWidth: '280px' }).setHTML(
+                        this.htmlPopupVendedor(v),
                     ))
                     .addTo(this.mapa);
+                m.getElement()?.addEventListener('click', () => this.carregarTrajeto(v.user_id));
                 this.markersAoVivo.push(m);
             });
             this.aplicarCamadas();
+            if (this.filtros?.vendedor_id) {
+                this.carregarTrajeto(this.filtros.vendedor_id);
+            }
+        },
+
+        corAlerta(status) {
+            if (status === 'fora_territorio') return '#e11d48';
+            if (status === 'sem_sinal') return '#f59e0b';
+            if (status === 'parado') return '#a855f7';
+            return '#22c55e';
+        },
+
+        async carregarTrajeto(userId) {
+            if (!userId || !this.trajetoUrlBase || !this.mapa) return;
+            try {
+                const url = `${this.trajetoUrlBase.replace(/\/$/, '')}/${userId}/trajeto?minutos=180`;
+                const res = await fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+                if (!res.ok) return;
+                const dados = await res.json();
+                this.desenharTrajeto(dados.pontos || []);
+            } catch (e) {}
+        },
+
+        desenharTrajeto(pontos) {
+            if (!this.mapa || !this.mapa.getStyle) return;
+            const coords = (pontos || [])
+                .filter((p) => p.lat != null && p.lng != null)
+                .map((p) => [p.lng, p.lat]);
+
+            const geo = {
+                type: 'Feature',
+                properties: {},
+                geometry: { type: 'LineString', coordinates: coords },
+            };
+
+            if (this.mapa.getSource('trajeto-vendedor')) {
+                this.mapa.getSource('trajeto-vendedor').setData(geo);
+            } else {
+                this.mapa.addSource('trajeto-vendedor', { type: 'geojson', data: geo });
+                this.mapa.addLayer({
+                    id: 'trajeto-vendedor-line',
+                    type: 'line',
+                    source: 'trajeto-vendedor',
+                    paint: {
+                        'line-color': '#0ea5e9',
+                        'line-width': 3,
+                        'line-opacity': 0.85,
+                    },
+                });
+            }
+
+            if (coords.length >= 2) {
+                const bounds = coords.reduce(
+                    (b, c) => b.extend(c),
+                    new this.mapboxgl.LngLatBounds(coords[0], coords[0]),
+                );
+                this.mapa.fitBounds(bounds, { padding: 48, maxZoom: 14 });
+            }
+        },
+
+        htmlPopupVendedor(v) {
+            const nome = this.escaparHtml(v.nome || 'Vendedor');
+            const unidade = v.unidade_nome
+                ? this.escaparHtml(
+                    [v.unidade_tipo, v.unidade_nome].filter(Boolean).join(' · '),
+                )
+                : 'Sem unidade';
+            const idade = this.formatarIdade(v.idade_segundos);
+            const alerta = (v.alertas || []).length
+                ? `<div style="font-size:11px;color:#e11d48;margin-top:4px">${this.escaparHtml((v.alertas || []).join(' · '))}</div>`
+                : '';
+            const foto = v.foto_url
+                ? `<img src="${this.escaparAttr(v.foto_url)}" alt="" width="48" height="48" style="width:48px;height:48px;border-radius:9999px;object-fit:cover;flex-shrink:0;border:2px solid #e2e8f0">`
+                : `<div style="width:48px;height:48px;border-radius:9999px;background:#0ea5e9;color:#071018;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0">${this.iniciais(v.nome)}</div>`;
+
+            return `<div style="display:flex;gap:12px;align-items:center;min-width:200px;padding:2px 0">
+                ${foto}
+                <div style="min-width:0">
+                    <div style="font-weight:700;font-size:14px;color:#0f172a;line-height:1.2">${nome}</div>
+                    <div style="font-size:12px;color:#475569;margin-top:3px;line-height:1.3">${unidade}</div>
+                    <div style="font-size:11px;color:#94a3b8;margin-top:4px">${idade}</div>
+                    ${alerta}
+                </div>
+            </div>`;
+        },
+
+        iniciais(nome) {
+            const partes = String(nome || 'V').trim().split(/\s+/).filter(Boolean);
+            const letras = (partes[0]?.[0] || 'V') + (partes[1]?.[0] || '');
+            return this.escaparHtml(letras.toUpperCase());
+        },
+
+        formatarIdade(segundos) {
+            const s = Math.max(0, Math.floor(Number(segundos) || 0));
+            if (s < 60) return `há ${s}s`;
+            if (s < 3600) return `há ${Math.floor(s / 60)} min`;
+            return `há ${Math.floor(s / 3600)} h`;
+        },
+
+        escaparHtml(valor) {
+            return String(valor ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        },
+
+        escaparAttr(valor) {
+            return this.escaparHtml(valor).replace(/`/g, '');
         },
 
         async puxarAoVivo() {

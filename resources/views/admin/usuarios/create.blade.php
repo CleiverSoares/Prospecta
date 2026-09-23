@@ -6,7 +6,7 @@
     </x-slot:acoes>
 
     <x-admin.painel :padding="false" class="p-4 sm:p-6">
-        <form method="POST" action="{{ route('admin.usuarios.store') }}">
+        <form method="POST" action="{{ route('admin.usuarios.store') }}" enctype="multipart/form-data">
             @csrf
             @include('admin.usuarios._form', ['rotuloSubmit' => 'Criar usuário'])
         </form>

@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\IntegracoesController;
+use App\Http\Controllers\Admin\AgendaDiaController;
 use App\Http\Controllers\Admin\LocalizacaoAoVivoController;
+use App\Http\Controllers\Admin\LocalizacaoTrajetoController;
 use App\Http\Controllers\Admin\PainelController;
 use App\Http\Controllers\Admin\PapelController;
 use App\Http\Controllers\Admin\UnidadeController;
@@ -39,8 +41,12 @@ Route::middleware(['auth', 'permission:admin.acessar'])
     ->name('admin.')
     ->group(function () {
         Route::get('/', PainelController::class)->name('painel');
+        Route::get('/agenda', AgendaDiaController::class)->name('agenda');
         Route::get('/integracoes', IntegracoesController::class)->name('integracoes');
         Route::get('/localizacoes/ao-vivo', LocalizacaoAoVivoController::class)->name('localizacoes.ao-vivo');
+        Route::get('/localizacoes/{usuario}/trajeto', LocalizacaoTrajetoController::class)
+            ->middleware('permission:usuarios.ver')
+            ->name('localizacoes.trajeto');
 
         Route::middleware('permission:visitas.ver')->group(function () {
             Route::get('/visitas', [VisitaController::class, 'index'])->name('visitas.index');
@@ -82,9 +88,18 @@ Route::middleware(['auth', 'permission:admin.acessar'])
             Route::get('/usuarios/{usuario}/editar', [UsuarioController::class, 'edit'])
                 ->middleware('permission:usuarios.editar')
                 ->name('usuarios.edit');
+            Route::get('/usuarios/{usuario}', function (\App\Models\User $usuario) {
+                return redirect()->route('admin.usuarios.edit', $usuario);
+            })->name('usuarios.show');
             Route::put('/usuarios/{usuario}', [UsuarioController::class, 'update'])
                 ->middleware('permission:usuarios.editar')
                 ->name('usuarios.update');
+            Route::post('/usuarios/{usuario}/desativar', [UsuarioController::class, 'desativar'])
+                ->middleware('permission:usuarios.editar')
+                ->name('usuarios.desativar');
+            Route::post('/usuarios/{usuario}/reativar', [UsuarioController::class, 'reativar'])
+                ->middleware('permission:usuarios.editar')
+                ->name('usuarios.reativar');
         });
 
         Route::middleware('permission:papeis.gerenciar')->group(function () {

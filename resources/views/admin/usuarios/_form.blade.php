@@ -70,6 +70,25 @@
         @endforeach
     </x-admin.campo>
 
+    <div class="space-y-2">
+        <label for="foto" class="block text-sm font-medium text-ink">Foto (mapa ao vivo)</label>
+        <div class="flex flex-wrap items-center gap-4">
+            @if ($usuario?->foto_url)
+                <img src="{{ $usuario->foto_url }}" alt="" class="size-16 rounded-full object-cover ring-2 ring-surface-line">
+            @endif
+            <input
+                id="foto"
+                type="file"
+                name="foto"
+                accept="image/*"
+                class="block w-full max-w-sm text-sm text-ink-soft file:mr-3 file:rounded-xl file:border-0 file:bg-brand file:px-3 file:py-2 file:text-sm file:font-semibold file:text-ink"
+            >
+        </div>
+        @error('foto')
+            <p class="text-sm text-rose-600">{{ $message }}</p>
+        @enderror
+    </div>
+
     <div class="border-t border-surface-line pt-5">
         <p class="text-xs font-semibold uppercase tracking-[0.12em] text-ink-faint">Território</p>
         <p class="mt-1 mb-4 text-sm text-ink-soft">Unidade, gestor e base CEP do vendedor.</p>
@@ -145,5 +164,19 @@
     <div class="flex flex-wrap gap-2 border-t border-surface-line pt-5">
         <x-admin.botao tipo="submit">{{ $rotuloSubmit }}</x-admin.botao>
         <x-admin.botao :href="route('admin.usuarios.index')" variante="secundario">Cancelar</x-admin.botao>
+
+        @if ($usuario && auth()->user()?->can('usuarios.editar') && $usuario->id !== auth()->id())
+            @if ($usuario->ativo)
+                <form method="POST" action="{{ route('admin.usuarios.desativar', $usuario) }}" onsubmit="return confirm('Desativar este usuário?')">
+                    @csrf
+                    <x-admin.botao tipo="submit" variante="perigo">Desativar</x-admin.botao>
+                </form>
+            @else
+                <form method="POST" action="{{ route('admin.usuarios.reativar', $usuario) }}">
+                    @csrf
+                    <x-admin.botao tipo="submit" variante="secundario">Reativar</x-admin.botao>
+                </form>
+            @endif
+        @endif
     </div>
 </div>

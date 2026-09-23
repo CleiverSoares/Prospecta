@@ -68,6 +68,10 @@ return [
     'tracking' => [
         'intervalo_ms' => (int) env('TRACKING_INTERVALO_MS', 12000),
         'janela_minutos' => (int) env('TRACKING_JANELA_MINUTOS', 15),
+        'alerta_sem_sinal_segundos' => (int) env('TRACKING_ALERTA_SEM_SINAL_SEGUNDOS', 180),
+        'alerta_parado_ms' => (float) env('TRACKING_ALERTA_PARADO_MS', 1.0),
     ],
+
+    'meta_visitas_dia' => (int) env('META_VISITAS_DIA', 8),
 
 ];

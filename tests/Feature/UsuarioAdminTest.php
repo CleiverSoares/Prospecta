@@ -54,13 +54,51 @@ class UsuarioAdminTest extends TestCase
         $this->assertTrue($criado->hasRole('vendedor'));
     }
 
-    public function test_vendedor_nao_acessa_usuarios_admin(): void
+    public function test_adm_desativa_usuario(): void
     {
-        $vendedor = User::factory()->create();
-        $vendedor->assignRole('vendedor');
+        $adm = User::factory()->create();
+        $adm->assignRole('adm');
+        $alvo = User::factory()->create(['ativo' => true]);
+        $alvo->assignRole('vendedor');
 
-        $this->actingAs($vendedor)
-            ->get(route('admin.usuarios.index'))
-            ->assertForbidden();
+        $this->actingAs($adm)
+            ->post(route('admin.usuarios.desativar', $alvo))
+            ->assertRedirect(route('admin.usuarios.index'));
+
+        $this->assertFalse($alvo->fresh()->ativo);
+    }
+
+    public function test_adm_filtra_so_vendedores(): void
+    {
+        $adm = User::factory()->create();
+        $adm->assignRole('adm');
+
+        $vendedor = User::factory()->create(['name' => 'Só Campo']);
+        $vendedor->assignRole('vendedor');
+        $gestor = User::factory()->create(['name' => 'Só Gestor']);
+        $gestor->assignRole('gestor');
+
+        $this->actingAs($adm)
+            ->get(route('admin.usuarios.index', ['papel' => 'vendedor']))
+            ->assertOk()
+            ->assertSee('Só Campo')
+            ->assertDontSee('Só Gestor');
+    }
+
+    public function test_usuario_inativo_nao_loga(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'off@prospecta.test',
+            'password' => 'password',
+            'ativo' => false,
+        ]);
+        $user->assignRole('vendedor');
+
+        $this->post(route('login'), [
+            'email' => 'off@prospecta.test',
+            'password' => 'password',
+        ])->assertSessionHasErrors('email');
+
+        $this->assertGuest();
     }
 }

@@ -127,18 +127,23 @@
             url: @js(route('app.localizacao.store')),
             csrf: @js(csrf_token()),
             intervaloMs: @js((int) config('prospecta.tracking.intervalo_ms', 12000)),
+            filaKey: 'prospecta.gps_fila',
         };
 
         (function iniciarTrackingCampo() {
             const cfg = window.prospectaTracking;
             if (!cfg?.url || !navigator.geolocation) return;
 
-            let ultimoEnvio = 0;
-            const enviar = (pos) => {
-                const agora = Date.now();
-                if (agora - ultimoEnvio < cfg.intervaloMs) return;
-                ultimoEnvio = agora;
-                fetch(cfg.url, {
+            const lerFila = () => {
+                try { return JSON.parse(localStorage.getItem(cfg.filaKey) || '[]'); }
+                catch (e) { return []; }
+            };
+            const gravarFila = (itens) => {
+                try { localStorage.setItem(cfg.filaKey, JSON.stringify(itens.slice(-80))); }
+                catch (e) {}
+            };
+            const postar = async (payload) => {
+                const res = await fetch(cfg.url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -146,20 +151,56 @@
                         'X-CSRF-TOKEN': cfg.csrf,
                     },
                     credentials: 'same-origin',
-                    body: JSON.stringify({
-                        lat: pos.coords.latitude,
-                        lng: pos.coords.longitude,
-                        precisao: pos.coords.accuracy ?? null,
-                        velocidade: pos.coords.speed != null && pos.coords.speed >= 0 ? pos.coords.speed : null,
-                        direcao: pos.coords.heading != null && pos.coords.heading >= 0 ? pos.coords.heading : null,
-                    }),
-                }).catch(() => {});
+                    body: JSON.stringify(payload),
+                });
+                if (!res.ok) throw new Error('fail');
+            };
+            const enfileirar = (payload) => {
+                const fila = lerFila();
+                fila.push(payload);
+                gravarFila(fila);
+            };
+            const drenarFila = async () => {
+                const fila = lerFila();
+                if (!fila.length || !navigator.onLine) return;
+                const restam = [];
+                for (const item of fila) {
+                    try { await postar(item); }
+                    catch (e) { restam.push(item); break; }
+                }
+                gravarFila(restam);
+            };
+
+            let ultimoEnvio = 0;
+            const enviar = (pos) => {
+                const agora = Date.now();
+                if (agora - ultimoEnvio < cfg.intervaloMs) return;
+                ultimoEnvio = agora;
+                const payload = {
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    precisao: pos.coords.accuracy ?? null,
+                    velocidade: pos.coords.speed != null && pos.coords.speed >= 0 ? pos.coords.speed : null,
+                    direcao: pos.coords.heading != null && pos.coords.heading >= 0 ? pos.coords.heading : null,
+                };
+                if (!navigator.onLine) {
+                    enfileirar(payload);
+                    return;
+                }
+                postar(payload).catch(() => enfileirar(payload));
             };
 
             navigator.geolocation.watchPosition(enviar, () => {}, {
                 enableHighAccuracy: true,
                 maximumAge: 5000,
+                timeout: 20000,
             });
+
+            window.addEventListener('online', () => drenarFila());
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') drenarFila();
+            });
+            drenarFila();
         })();
 
         if ('serviceWorker' in navigator) {

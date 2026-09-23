@@ -6,7 +6,7 @@
     </x-slot:acoes>
 
     <x-admin.painel :padding="false" class="p-4 sm:p-6">
-        <form method="POST" action="{{ route('admin.usuarios.update', $usuario) }}">
+        <form method="POST" action="{{ route('admin.usuarios.update', $usuario) }}" enctype="multipart/form-data">
             @csrf
             @method('PUT')
             @include('admin.usuarios._form', [

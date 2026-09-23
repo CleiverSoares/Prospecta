@@ -5,11 +5,13 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable([
@@ -23,6 +25,8 @@ use Spatie\Permission\Traits\HasRoles;
     'origem_lat',
     'origem_lng',
     'origem_rotulo',
+    'foto_path',
+    'ativo',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
@@ -40,7 +44,22 @@ class User extends Authenticatable
             'password' => 'hashed',
             'origem_lat' => 'float',
             'origem_lng' => 'float',
+            'ativo' => 'boolean',
         ];
+    }
+
+    /**
+     * @return Attribute<string|null, never>
+     */
+    protected function fotoUrl(): Attribute
+    {
+        return Attribute::get(function (): ?string {
+            if (! filled($this->foto_path)) {
+                return null;
+            }
+
+            return Storage::disk('public')->url($this->foto_path);
+        });
     }
 
     public function unidade(): BelongsTo

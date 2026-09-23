@@ -46,6 +46,7 @@ class SalvarUsuarioRequest extends FormRequest
             'origem_lat' => ['nullable', 'numeric', 'between:-90,90'],
             'origem_lng' => ['nullable', 'numeric', 'between:-180,180'],
             'role' => ['required', 'string', Rule::in(['adm', 'gestor', 'vendedor'])],
+            'foto' => ['nullable', 'image', 'max:2048'],
         ];
     }
 

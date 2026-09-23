@@ -7,6 +7,7 @@
         'visitas' => $visitasMapa,
         'aoVivo' => $aoVivo ?? [],
         'aoVivoUrl' => route('admin.localizacoes.ao-vivo'),
+        'trajetoUrlBase' => url('/admin/localizacoes'),
         'rascunhoUrl' => route('admin.unidades.rascunho-poligono'),
         'csrf' => csrf_token(),
         'podeCriarUnidade' => auth()->user()?->can('unidades.criar') ?? false,
@@ -128,12 +129,12 @@
             x-show="!temSelecao"
             x-cloak
         >
-            <p class="text-xs font-semibold uppercase tracking-[0.08em] text-ink-faint">Placar do dia</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.08em] text-ink-faint">Placar do dia · meta {{ (int) config('prospecta.meta_visitas_dia', 8) }}</p>
             <ul class="mt-2.5 space-y-1.5">
                 @forelse ($placar as $i => $linha)
                     <li class="flex items-center justify-between text-sm">
                         <span class="truncate text-ink-soft"><span class="mr-1 font-semibold text-brand">{{ $i + 1 }}.</span>{{ $linha['nome'] }}</span>
-                        <span class="tabular-nums font-semibold text-ink">{{ $linha['checkins'] }}</span>
+                        <span class="tabular-nums font-semibold text-ink">{{ $linha['checkins'] }}/{{ $linha['meta'] ?? config('prospecta.meta_visitas_dia', 8) }}</span>
                     </li>
                 @empty
                     <li class="text-xs leading-relaxed text-ink-faint">Sem check-ins hoje — abra o app do vendedor e faça uma visita.</li>
@@ -141,6 +142,7 @@
             </ul>
             <div class="mt-3 flex flex-wrap gap-3 border-t border-surface-line/70 pt-3 text-xs">
                 @can('visitas.ver')
+                    <a href="{{ route('admin.agenda') }}" class="font-semibold text-brand hover:text-brand-strong">Agenda</a>
                     <a href="{{ route('admin.visitas.index') }}" class="font-semibold text-brand hover:text-brand-strong">Visitas</a>
                 @endcan
                 @can('unidades.ver')
