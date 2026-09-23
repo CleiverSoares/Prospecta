@@ -7,25 +7,26 @@
     'placeholder' => null,
 ])
 
-@php
-    $classeCampo = 'h-9 w-full rounded-md border border-surface-line bg-white px-3 text-sm text-ink outline-none transition placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/20';
-@endphp
+    @php
+        $classeCampo = 'h-9 w-full rounded-md border border-surface-line bg-white px-3 text-sm text-ink outline-none transition placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/20';
+        $classeSelect = $classeCampo.' pr-9';
+    @endphp
 
-<div class="space-y-1.5">
-    <label for="{{ $nome }}" class="block text-sm font-medium text-ink">
-        {{ $rotulo }}
-        @if ($obrigatorio)<span class="text-brand">*</span>@endif
-    </label>
+    <div class="space-y-1.5">
+        <label for="{{ $nome }}" class="block text-sm font-medium text-ink">
+            {{ $rotulo }}
+            @if ($obrigatorio)<span class="text-brand">*</span>@endif
+        </label>
 
-    @if ($tipo === 'select')
-        <select
-            id="{{ $nome }}"
-            name="{{ $nome }}"
-            @if ($obrigatorio) required @endif
-            {{ $attributes->merge(['class' => $classeCampo]) }}
-        >
-            {{ $slot }}
-        </select>
+        @if ($tipo === 'select')
+            <select
+                id="{{ $nome }}"
+                name="{{ $nome }}"
+                @if ($obrigatorio) required @endif
+                {{ $attributes->merge(['class' => $classeSelect]) }}
+            >
+                {{ $slot }}
+            </select>
     @else
         <input
             id="{{ $nome }}"

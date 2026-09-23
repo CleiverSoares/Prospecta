@@ -1,0 +1,59 @@
+# Blueprint opcional — no Render: New → Blueprint → este repo
+# Ou use Web Service → Docker manualmente e ignore este arquivo.
+
+services:
+  - type: web
+    name: prospecta
+    runtime: docker
+    plan: free
+    region: oregon
+    branch: main
+    healthCheckPath: /up
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_URL
+        sync: false
+      - key: APP_KEY
+        generateValue: true
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: RUN_MIGRATIONS
+        value: "true"
+      # Banco: vincule um PostgreSQL/MySQL no painel e mapeie DB_*
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        fromDatabase:
+          name: prospecta-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: prospecta-db
+          property: port
+      - key: DB_DATABASE
+        fromDatabase:
+          name: prospecta-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: prospecta-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: prospecta-db
+          property: password
+
+databases:
+  - name: prospecta-db
+    plan: free
+    databaseName: prospecta
+    user: prospecta

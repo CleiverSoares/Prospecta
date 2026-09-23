@@ -14,6 +14,7 @@ class VisitaService
 {
     public function __construct(
         private readonly VisitaRepository $visitaRepository,
+        private readonly RotaDiaService $rotaDiaService,
     ) {}
 
     /**
@@ -71,6 +72,8 @@ class VisitaService
             'checkin_lat' => $lat,
             'checkin_lng' => $lng,
         ]);
+
+        $this->rotaDiaService->marcarCheckin($visita);
 
         VisitaConcluida::dispatch($visita);
 

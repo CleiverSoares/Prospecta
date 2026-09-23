@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\DocumentacaoController;
 use App\Http\Controllers\Admin\IntegracoesController;
 use App\Http\Controllers\Admin\AgendaDiaController;
 use App\Http\Controllers\Admin\LocalizacaoAoVivoController;
@@ -43,6 +44,7 @@ Route::middleware(['auth', 'permission:admin.acessar'])
         Route::get('/', PainelController::class)->name('painel');
         Route::get('/agenda', AgendaDiaController::class)->name('agenda');
         Route::get('/integracoes', IntegracoesController::class)->name('integracoes');
+        Route::get('/documentacao', DocumentacaoController::class)->name('documentacao');
         Route::get('/localizacoes/ao-vivo', LocalizacaoAoVivoController::class)->name('localizacoes.ao-vivo');
         Route::get('/localizacoes/{usuario}/trajeto', LocalizacaoTrajetoController::class)
             ->middleware('permission:usuarios.ver')
@@ -121,6 +123,10 @@ Route::middleware(['auth', 'permission:app.acessar'])
 
         Route::middleware('setup.diario')->group(function () {
             Route::get('/area', AreaController::class)->name('area');
+            Route::get('/area/municipios', [AreaController::class, 'municipios'])
+                ->name('area.municipios');
+            Route::get('/area/bairros', [AreaController::class, 'bairros'])
+                ->name('area.bairros');
             Route::get('/rota', RotaPageController::class)->name('rota');
             Route::get('/checkin', CheckinController::class)->name('checkin');
 

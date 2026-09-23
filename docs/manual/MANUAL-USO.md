@@ -26,11 +26,13 @@ Tudo que o vendedor registra (visita, foto, áudio, GPS) fica **salvo no banco d
 
 ```
 Login → Admin (gestão) ──┬── Painel (mapa ao vivo)
+                         ├── Agenda (plano X/Y)
                          ├── Visitas (foto / áudio)
                          ├── Unidades (polígono + CEP)
                          ├── Usuários
                          ├── Papéis
-                         └── Integrações
+                         ├── Integrações
+                         └── Documentação
 
 Login → Campo (vendedor) ── Setup → Área → Rota → Check-in
 ```
@@ -56,11 +58,13 @@ No desktop, use a **barra lateral** (ou o menu superior no mobile). Itens:
 | Menu | O que faz |
 |------|-----------|
 | **Painel** | Mapa Mapbox com unidades, pins, vendedores ao vivo |
+| **Agenda** | Plano do dia (X/Y no plano vs meta casa); link para o mapa |
 | **Visitas** | Lista e detalhe com foto da fachada + áudio |
 | **Unidades** | Território (polígono + faixa de CEP) |
 | **Usuários** | Equipe, papel, unidade, CEP base, origem GPS |
 | **Papéis** | Roles Spatie e permissões |
 | **Integrações** | Status Mapbox / Google / Receita |
+| **Documentação** | Fluxo, legendas, como a rota é ordenada |
 
 ---
 
@@ -215,10 +219,11 @@ Depois: **Salvar e ir para Área**.
 
 ![Tela de área / cerca](screenshots/11-app-area.png)
 
-1. Informe **bairro**, **cidade**, **UF** e opcionalmente **CEP**.
-2. Ou clique **Desenhar cerca** → marque ≥3 pontos no mapa → **Fechar cerca**.
-3. O sistema valida território (sua unidade / área livre / bloqueio).
-4. **Buscar leads na área** — Google Places; pins entram no mapa e no `localStorage` para a rota.
+1. Escolha **UF** (select) → digite **cidade** → digite **bairro** (CEP opcional).
+2. Ao digitar cidade, a lista vem do **IBGE** (só municípios da UF) — “gua” já encontra Guapimirim. Bairro: **ViaCEP** na cidade (+ Google filtrado pelo município real, sem “Rua Teresópolis” em outro lugar).
+3. Ou clique **Desenhar cerca** → marque ≥3 pontos no mapa → **Fechar cerca**.
+4. O sistema valida território (sua unidade / área livre / bloqueio).
+5. **Buscar leads na área** — Google Places; pins entram no mapa e no `localStorage` para a rota.
 
 ---
 
@@ -228,10 +233,24 @@ Depois: **Salvar e ir para Área**.
 
 ![Rota do dia](screenshots/12-app-rota.png)
 
+**Como a sequência é calculada** (backend `RotaService` — o Google só desenha):
+
+1. Leads marcados na Área + origem do Setup + mix/horas/segmento.
+2. Filtro de raio conforme o % de prospecção.
+3. Agrupa “prédio” (~50 m / mesmo endereço) = 1 deslocamento.
+4. Ordena: grupos grandes primeiro, depois mais perto da origem em **linha reta** (haversine); dentro do grupo por latitude.
+5. Encaixa nos horários do dia (almoço + regras de segmento).
+6. Maps/Waze recebem waypoints **nessa ordem** (sem otimizar pelo Google).
+
+**Por que não ordena “pela rua”?** Distância rodoviária exigiria Distance Matrix/Directions do Google a cada combinação (custo, cota, latência). Hoje a ordem é heurística barata; a navegação (Maps/Waze) já segue a rua. Melhoria futura: Matrix.
+
+Na tela:
+
 - Mapa com pins numerados e o **carro** = sua posição GPS.
 - Lista de paradas com guia de bolso (pitch).
 - **Seguir no mapa** — câmera acompanha o vendedor sem pular para outra cidade.
 - **Abrir no Google Maps** — navegação externa com waypoints.
+- Ao gerar a rota, o **plano é publicado** e aparece na **Agenda** do admin/gestor.
 - Toque no pin/card para detalhes; depois vá ao **Check-in**.
 
 Sem leads: mensagem pedindo para voltar em Prospectar/Área.

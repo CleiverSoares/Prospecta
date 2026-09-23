@@ -5,6 +5,7 @@ namespace App\Http\Controllers\App;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\App\GerarRotaRequest;
 use App\Repositories\ProspectoRepository;
+use App\Services\RotaDiaService;
 use App\Services\RotaService;
 use Illuminate\Http\JsonResponse;
 
@@ -12,6 +13,7 @@ class RotaController extends Controller
 {
     public function __construct(
         private readonly RotaService $rotaService,
+        private readonly RotaDiaService $rotaDiaService,
         private readonly ProspectoRepository $prospectoRepository,
     ) {}
 
@@ -39,6 +41,12 @@ class RotaController extends Controller
             ],
         );
 
-        return response()->json($rota);
+        $rotaDia = $this->rotaDiaService->publicar($request->user(), $rota['itens'] ?? []);
+
+        return response()->json([
+            ...$rota,
+            'rota_dia_id' => $rotaDia?->id,
+            'plano_publicado' => $rotaDia !== null,
+        ]);
     }
 }

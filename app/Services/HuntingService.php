@@ -19,13 +19,14 @@ class HuntingService
     ) {}
 
     /**
-     * @param  array{bairro?: ?string, cidade?: ?string, uf?: ?string, cep?: ?string, lat?: ?float, lng?: ?float, segmento?: ?string, poligono?: ?array}  $area
-     * @return array{territorio: array<string, mixed>, prospectos: list<array<string, mixed>>, cerca?: array<string, mixed>|null}
+     * @param  array{bairro?: ?string, cidade?: ?string, uf?: ?string, cep?: ?string, lat?: ?float, lng?: ?float, segmento?: ?string, horas?: ?string, poligono?: ?array}  $area
+     * @return array{territorio: array<string, mixed>, prospectos: list<array<string, mixed>>, centro: array{lat: float, lng: float}, local_resolvido: string|null, avisos: list<string>, cerca?: array<string, mixed>|null}
      */
     public function prospectar(User $usuario, array $area): array
     {
         $coordenadas = $this->resolverCoordenadas($area);
         $cep = $this->resolverCep($area, $coordenadas);
+        $avisos = [];
 
         if ($conflito = $this->cercaTemporariaService->conflitoComOutro($usuario, $cep)) {
             throw ValidationException::withMessages([
@@ -88,6 +89,21 @@ class HuntingService
             $prospectos[] = $serial;
         }
 
+        $encontrados = count($prospectos);
+        $limiteJanela = $this->limiteSugeridoPorHoras((string) ($area['horas'] ?? ''));
+        if ($encontrados > $limiteJanela) {
+            $prospectos = array_slice($prospectos, 0, $limiteJanela);
+            $avisos[] = "Janela de horas sugere no máx. {$limiteJanela} parada(s) — mostramos as {$limiteJanela} mais próximas (Google achou {$encontrados}).";
+        }
+
+        $segNorm = strtoupper((string) $segmento);
+        if (in_array($segNorm, ['RESTAURANTE'], true)) {
+            $avisos[] = 'Segmento restaurante: na rota, visitas evitam 11:30–14:00 (almoço).';
+        }
+        if (in_array($segNorm, ['CONTABIL', 'CONTÁBIL', 'CONTABILIDADE'], true)) {
+            $avisos[] = 'Segmento contábil: nos dias 01–05 do mês a rota não agenda (fechamento).';
+        }
+
         $cerca = $this->cercaTemporariaService->reservar($usuario, [
             'rotulo' => trim(($area['bairro'] ?? '').' '.($area['cidade'] ?? '')) ?: 'Cerca do hunting',
             'cep_inicio' => $cep,
@@ -98,7 +114,13 @@ class HuntingService
         return [
             'territorio' => $territorio,
             'prospectos' => $prospectos,
-            'centro' => $coordenadas,
+            'centro' => [
+                'lat' => $coordenadas['lat'],
+                'lng' => $coordenadas['lng'],
+            ],
+            'local_resolvido' => $coordenadas['endereco'] ?? null,
+            'avisos' => $avisos,
+            'consulta' => $consulta,
             'cerca' => [
                 'id' => $cerca->id,
                 'expira_em' => $cerca->expira_em->toIso8601String(),
@@ -109,12 +131,16 @@ class HuntingService
 
     /**
      * @param  array<string, mixed>  $area
-     * @return array{lat: float, lng: float}
+     * @return array{lat: float, lng: float, endereco?: string}
      */
     private function resolverCoordenadas(array $area): array
     {
         if (isset($area['lat'], $area['lng']) && is_numeric($area['lat']) && is_numeric($area['lng'])) {
-            return ['lat' => (float) $area['lat'], 'lng' => (float) $area['lng']];
+            return [
+                'lat' => (float) $area['lat'],
+                'lng' => (float) $area['lng'],
+                'endereco' => 'GPS '.number_format((float) $area['lat'], 4).', '.number_format((float) $area['lng'], 4),
+            ];
         }
 
         if (! empty($area['poligono']['coordinates'][0][0])) {
@@ -122,7 +148,11 @@ class HuntingService
             $lat = collect($ring)->avg(fn ($p) => $p[1]);
             $lng = collect($ring)->avg(fn ($p) => $p[0]);
 
-            return ['lat' => (float) $lat, 'lng' => (float) $lng];
+            return [
+                'lat' => (float) $lat,
+                'lng' => (float) $lng,
+                'endereco' => 'Cerca desenhada no mapa',
+            ];
         }
 
         $partes = array_filter([
@@ -139,15 +169,42 @@ class HuntingService
             ]);
         }
 
-        $coords = $this->googlePlacesClient->geocodificarTexto(implode(', ', $partes));
+        $texto = implode(', ', $partes);
+        $coords = $this->googlePlacesClient->geocodificarTexto($texto);
 
         if ($coords === null) {
             throw ValidationException::withMessages([
-                'area' => 'Não foi possível localizar essa área no mapa.',
+                'area' => 'Não encontramos “'.$texto.'” no mapa. Confira bairro, cidade, UF ou CEP.',
             ]);
         }
 
         return $coords;
+    }
+
+    /**
+     * Quantas paradas cabem na janela de horas (estimativa conservadora).
+     */
+    private function limiteSugeridoPorHoras(string $horas): int
+    {
+        $duracao = (int) config('prospecta.rota.duracao_visita_min', 30);
+        $desloc = 15;
+        $slot = max(20, $duracao + $desloc);
+        $teto = (int) config('prospecta.rota.limite_paradas', 12);
+
+        if (! preg_match('/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/', $horas, $m)) {
+            return $teto;
+        }
+
+        $ini = ((int) $m[1] * 60) + (int) $m[2];
+        $fim = ((int) $m[3] * 60) + (int) $m[4];
+        if ($fim <= $ini) {
+            return max(1, min(3, $teto));
+        }
+
+        $minutos = $fim - $ini;
+        $cabem = (int) max(1, floor($minutos / $slot));
+
+        return min($teto, $cabem);
     }
 
     /**

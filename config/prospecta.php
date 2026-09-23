@@ -28,6 +28,10 @@ return [
         'url_base' => env('VIACEP_URL_BASE', 'https://viacep.com.br/ws'),
     ],
 
+    'ibge' => [
+        'url_base' => env('IBGE_URL_BASE', 'https://servicodados.ibge.gov.br/api/v1/localidades'),
+    ],
+
     'rota' => [
         'faixa_lng' => (float) env('ROTA_FAIXA_LNG', 0.004),
         // Limite de paradas (legado: ROTA_JANELA_OURO ainda funciona como alias)

@@ -26,14 +26,36 @@ class PainelService
      *     aoVivo: list<array<string, mixed>>,
      *     placar: list<array{nome: string, checkins: int}>,
      *     filtros: array<string, mixed>,
-     *     opcoes: array{unidades: Collection, gestores: Collection, vendedores: Collection}
+     *     opcoes: array{unidades: Collection, gestores: Collection, vendedores: Collection},
+     *     escopoGestor: bool
      * }
      */
-    public function montar(array $filtros = []): array
+    public function montar(array $filtros = [], ?User $usuario = null): array
     {
+        $escopoGestor = $usuario !== null
+            && $usuario->hasRole('gestor')
+            && ! $usuario->hasRole('adm');
+
         $unidadeId = isset($filtros['unidade_id']) ? (int) $filtros['unidade_id'] : null;
         $gestorId = isset($filtros['gestor_id']) ? (int) $filtros['gestor_id'] : null;
         $vendedorId = isset($filtros['vendedor_id']) ? (int) $filtros['vendedor_id'] : null;
+
+        if ($escopoGestor) {
+            $gestorId = (int) $usuario->id;
+            if ($usuario->unidade_id) {
+                $unidadeId = (int) $usuario->unidade_id;
+            }
+            if ($vendedorId) {
+                $ehDaEquipe = User::query()
+                    ->where('id', $vendedorId)
+                    ->where('gestor_id', $gestorId)
+                    ->exists();
+                if (! $ehDaEquipe) {
+                    $vendedorId = null;
+                }
+            }
+        }
+
         $de = filled($filtros['de'] ?? null) ? Carbon::parse((string) $filtros['de'])->startOfDay() : today()->startOfDay();
         $ate = filled($filtros['ate'] ?? null) ? Carbon::parse((string) $filtros['ate'])->endOfDay() : today()->endOfDay();
         $segmento = filled($filtros['segmento'] ?? null) ? strtoupper((string) $filtros['segmento']) : null;
@@ -45,7 +67,7 @@ class PainelService
             $visitasQuery->where('user_id', $vendedorId);
         } elseif ($gestorId) {
             $ids = User::query()->where('gestor_id', $gestorId)->pluck('id');
-            $visitasQuery->whereIn('user_id', $ids->push($gestorId));
+            $visitasQuery->whereIn('user_id', $ids);
         } elseif ($unidadeId) {
             $ids = User::query()->where('unidade_id', $unidadeId)->pluck('id');
             $visitasQuery->whereIn('user_id', $ids);
@@ -56,19 +78,23 @@ class PainelService
         $conversao = $visitasPeriodo > 0 ? round(($visitasFeitas / $visitasPeriodo) * 100, 1) : 0.0;
 
         $prospectosQuery = Prospecto::query()->whereNotNull('lat')->whereNotNull('lng');
-        if ($segmento) {
-            // segmento ainda não é coluna; filtra por heurística simples no guia futuro
-        }
 
-        $kmEstimado = round($visitasPeriodo * 4.2, 1); // proxy até Directions batch
+        $kmEstimado = round($visitasPeriodo * 4.2, 1);
 
-        $placar = Visita::query()
+        $placarQuery = Visita::query()
             ->selectRaw('user_id, count(*) as total')
             ->whereDate('created_at', today())
             ->groupBy('user_id')
             ->orderByDesc('total')
             ->limit(8)
-            ->with('usuario:id,name')
+            ->with('usuario:id,name');
+
+        if ($escopoGestor) {
+            $equipeIds = User::query()->where('gestor_id', $gestorId)->pluck('id');
+            $placarQuery->whereIn('user_id', $equipeIds);
+        }
+
+        $placar = $placarQuery
             ->get()
             ->map(fn (Visita $v) => [
                 'nome' => $v->usuario?->name ?? '—',
@@ -120,12 +146,29 @@ class PainelService
             ->values()
             ->all();
 
+        $vendedoresOpcoes = User::query()
+            ->role('vendedor')
+            ->when($escopoGestor, fn ($q) => $q->where('gestor_id', $gestorId))
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        $unidadesOpcoes = Unidade::query()
+            ->when($escopoGestor && $unidadeId, fn ($q) => $q->where('id', $unidadeId))
+            ->orderBy('nome')
+            ->get(['id', 'nome']);
+
+        $gestoresOpcoes = User::query()
+            ->role('gestor')
+            ->when($escopoGestor, fn ($q) => $q->where('id', $gestorId))
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         return [
             'metricas' => [
-                'unidades' => Unidade::query()->count(),
+                'unidades' => $escopoGestor ? $unidadesOpcoes->count() : Unidade::query()->count(),
                 'usuarios' => User::query()->count(),
                 'prospectos' => Prospecto::query()->count(),
-                'visitas_hoje' => Visita::query()->whereDate('created_at', today())->count(),
+                'visitas_hoje' => (clone $visitasQuery)->whereDate('created_at', today())->count(),
                 'visitas_periodo' => $visitasPeriodo,
                 'conversao' => $conversao,
                 'km_estimado' => $kmEstimado,
@@ -150,10 +193,11 @@ class PainelService
                 'segmento' => $segmento,
             ],
             'opcoes' => [
-                'unidades' => Unidade::query()->orderBy('nome')->get(['id', 'nome']),
-                'gestores' => User::query()->role('gestor')->orderBy('name')->get(['id', 'name']),
-                'vendedores' => User::query()->role('vendedor')->orderBy('name')->get(['id', 'name']),
+                'unidades' => $unidadesOpcoes,
+                'gestores' => $gestoresOpcoes,
+                'vendedores' => $vendedoresOpcoes,
             ],
+            'escopoGestor' => $escopoGestor,
         ];
     }
 }

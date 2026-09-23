@@ -18,6 +18,27 @@ php artisan serve --host=127.0.0.1 --port=8000
 
 Abra **http://127.0.0.1:8000** (HTTP, não HTTPS).
 
+## Deploy no Render (Docker)
+
+1. Commit com `Dockerfile`, `docker/entrypoint.sh`, `.dockerignore` (e opcional `render.yaml`).
+2. No Render: **New → Web Service** → repo Prospecta → **Language: Docker** (não Node).
+3. Crie um **PostgreSQL** (ou MySQL) e ligue ao serviço; preencha `DB_*` (ou use o `render.yaml`).
+4. Env vars mínimas:
+
+| Key | Valor |
+|-----|--------|
+| `APP_KEY` | `php artisan key:generate --show` (ou Generate) |
+| `APP_ENV` | `production` |
+| `APP_DEBUG` | `false` |
+| `APP_URL` | URL do serviço (`https://….onrender.com`) |
+| `LOG_CHANNEL` | `stderr` |
+| `DB_CONNECTION` | `pgsql` (ou `mysql`) |
+| Mapbox / Google / etc. | iguais ao `.env` local |
+
+5. Health check: `/up`. O entrypoint roda `migrate --force` no boot.
+
+Local opcional: `docker build -t prospecta .` e `docker run -p 8080:8080 -e PORT=8080 -e APP_KEY=… prospecta`.
+
 ### Tokens no `.env`
 
 - `MAPBOX_ACCESS_TOKEN` / `VITE_MAPBOX_ACCESS_TOKEN` — painel e unidades
@@ -31,13 +52,14 @@ Mantenha `APP_URL=http://127.0.0.1:8000` e assets relativos. O app força HTTPS 
 
 ## Logins demo (senha `password`)
 
-| E-mail | Papel |
-|--------|--------|
-| `adm@prospecta.test` | Admin |
-| `gestor@prospecta.test` | Gestor Filial Rio |
-| `vendedor@prospecta.test` | Vendedor PWA |
-| `vendedor.livre@prospecta.test` | Área livre |
+| E-mail | Nome | Papel / unidade |
+|--------|------|-----------------|
+| `adm@prospecta.test` | Renata Oliveira | Admin |
+| `gestor@prospecta.test` | Bruno Carvalho | Gestor · Filial RJ Barra |
+| `vendedor@prospecta.test` | Camila Ferreira | Vendedor · Filial RJ Barra |
+| `vendedor.livre@prospecta.test` | Diego Santos | Vendedor · Representação Volta Redonda |
 
+Unidades demo batem com a rede Alterdata (Barra, Volta Redonda, Cabo Frio).
 ## Fluxos
 
 **Vendedor:** Setup (4 campos, sessão) → Área (bairro/cerca) → Rota (cérebro vertical/janela/blocos) → Maps/Waze → Check-in (GPS 100m + foto + áudio; upsell gate em cliente).

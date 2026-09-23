@@ -1,15 +1,27 @@
 export function registrarFluxoCampo(Alpine) {
     Alpine.data('ondeProspectar', (config) => ({
         prospectarUrl: config.prospectarUrl,
+        municipiosUrl: config.municipiosUrl || null,
+        bairrosUrl: config.bairrosUrl || null,
         detalheUrl: config.detalheUrl || null,
         csrf: config.csrf,
         bairro: '',
         cidade: '',
         uf: '',
         cep: '',
+        ufs: [
+            'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
+            'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
+            'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
+        ],
+        municipiosUf: [],
+        carregandoMunicipios: false,
         segmento: 'MISTO',
         status: '',
         erro: '',
+        buscando: false,
+        localResolvido: '',
+        avisos: [],
         territorio: null,
         prospectos: [],
         selecionadosIds: [],
@@ -22,6 +34,19 @@ export function registrarFluxoCampo(Alpine) {
         polyOverlay: null,
         markers: [],
         clickListener: null,
+        acService: null,
+        placesService: null,
+        cidadeBounds: null,
+        cidadeCentro: null,
+        sugestoesCidade: [],
+        sugestoesBairro: [],
+        idxCidade: -1,
+        idxBairro: -1,
+        avisoCidade: '',
+        avisoBairro: '',
+        debounceCidade: null,
+        debounceBairro: null,
+        placesDiv: null,
 
         init() {
             try {
@@ -32,19 +57,56 @@ export function registrarFluxoCampo(Alpine) {
                 }
             } catch (e) {}
 
-            this.$nextTick(() => this.aguardarMaps(() => this.iniciarMapa()));
+            this.restaurarAreaSalva();
+            this.$nextTick(() => this.aguardarMaps(() => {
+                this.iniciarMapa();
+                this.iniciarPlaces();
+                if (this.$refs.cidadeInput && this.cidade) {
+                    this.$refs.cidadeInput.value = this.cidade;
+                }
+                if (this.$refs.bairroInput && this.bairro) {
+                    this.$refs.bairroInput.value = this.bairro;
+                }
+                if (this.uf) this.carregarMunicipiosUf(this.uf);
+                if (this.cidade && this.uf) this.centralizarCidadeNoMapa(this.cidade);
+            }));
         },
 
-        aguardarMaps(cb, n = 40) {
+        restaurarAreaSalva() {
+            try {
+                const salva = JSON.parse(localStorage.getItem('prospecta.area') || '{}');
+                if (salva.uf) this.uf = String(salva.uf).toUpperCase().slice(0, 2);
+                if (salva.confirmada && salva.cidade) this.cidade = salva.cidade;
+                if (salva.confirmada && salva.bairro) this.bairro = salva.bairro;
+                if (salva.cep) this.cep = salva.cep;
+            } catch (e) {}
+        },
+
+        persistirArea({ confirmada = false } = {}) {
+            const prev = (() => {
+                try { return JSON.parse(localStorage.getItem('prospecta.area') || '{}'); }
+                catch (e) { return {}; }
+            })();
+            const cidadeOk = Boolean(String(this.cidade || '').trim()) && (confirmada || prev.confirmada);
+            localStorage.setItem('prospecta.area', JSON.stringify({
+                uf: this.uf,
+                cidade: cidadeOk ? this.cidade : '',
+                bairro: cidadeOk ? (this.bairro || '') : '',
+                cep: this.cep,
+                confirmada: cidadeOk,
+            }));
+        },
+
+        aguardarMaps(cb, n = 60) {
             if (window.google?.maps?.Map) {
                 cb();
                 return;
             }
             if (n <= 0) {
-                this.erro = 'Google Maps não carregou. Verifique a chave e APIs liberadas.';
+                this.erro = 'Google Maps não carregou. Verifique a chave e APIs (Maps).';
                 return;
             }
-            setTimeout(() => this.aguardarMaps(cb, n - 1), 150);
+            setTimeout(() => this.aguardarMaps(cb, n - 1), 120);
         },
 
         iniciarMapa() {
@@ -58,6 +120,394 @@ export function registrarFluxoCampo(Alpine) {
                 streetViewControl: false,
                 gestureHandling: 'greedy',
             });
+        },
+
+        iniciarPlaces() {
+            if (!window.google?.maps?.places?.AutocompleteService) return;
+            this.acService = new google.maps.places.AutocompleteService();
+            this.placesDiv = this.placesDiv || document.createElement('div');
+            this.placesService = new google.maps.places.PlacesService(this.mapa || this.placesDiv);
+        },
+
+        normalizarTexto(texto) {
+            return String(texto || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .trim();
+        },
+
+        async carregarMunicipiosUf(uf) {
+            if (!this.municipiosUrl || !uf) {
+                this.municipiosUf = [];
+                return;
+            }
+            this.carregandoMunicipios = true;
+            this.municipiosUf = [];
+            try {
+                const res = await fetch(`${this.municipiosUrl}?uf=${encodeURIComponent(uf)}`, {
+                    headers: { Accept: 'application/json' },
+                    credentials: 'same-origin',
+                });
+                const dados = await res.json();
+                this.municipiosUf = Array.isArray(dados.municipios) ? dados.municipios : [];
+            } catch (e) {
+                this.municipiosUf = [];
+                this.avisoCidade = 'Não deu pra carregar cidades do IBGE. Tente de novo.';
+            } finally {
+                this.carregandoMunicipios = false;
+            }
+        },
+
+        aoMudarUf() {
+            this.uf = (this.uf || '').toUpperCase();
+            this.cidade = '';
+            this.bairro = '';
+            this.cidadeBounds = null;
+            this.cidadeCentro = null;
+            this.sugestoesCidade = [];
+            this.sugestoesBairro = [];
+            this.avisoCidade = '';
+            this.avisoBairro = '';
+            this.idxCidade = -1;
+            this.idxBairro = -1;
+            if (this.$refs.cidadeInput) this.$refs.cidadeInput.value = '';
+            if (this.$refs.bairroInput) this.$refs.bairroInput.value = '';
+            this.persistirArea();
+            this.carregarMunicipiosUf(this.uf);
+            this.status = this.uf ? `UF ${this.uf}. Digite a cidade (lista IBGE).` : '';
+        },
+
+        aoDigitarCidade(valor) {
+            this.cidade = valor;
+            this.bairro = '';
+            this.sugestoesBairro = [];
+            this.avisoBairro = '';
+            if (!String(valor || '').trim()) {
+                this.limparCidadeNoStorage();
+            }
+            clearTimeout(this.debounceCidade);
+            this.debounceCidade = setTimeout(() => this.buscarSugestoesCidade(valor), 120);
+        },
+
+        aoDigitarBairro(valor) {
+            this.bairro = valor;
+            if (!String(valor || '').trim()) {
+                this.persistirArea();
+            }
+            clearTimeout(this.debounceBairro);
+            this.debounceBairro = setTimeout(() => this.buscarSugestoesBairro(valor), 220);
+        },
+
+        limparCidadeNoStorage() {
+            this.cidade = '';
+            this.bairro = '';
+            this.cidadeBounds = null;
+            this.sugestoesCidade = [];
+            this.sugestoesBairro = [];
+            this.avisoCidade = '';
+            this.avisoBairro = '';
+            if (this.$refs.bairroInput) this.$refs.bairroInput.value = '';
+            this.persistirArea();
+        },
+
+        buscarSugestoesCidade(texto) {
+            const q = this.normalizarTexto(texto);
+            this.idxCidade = -1;
+            this.avisoCidade = '';
+            if (!this.uf || q.length < 2) {
+                this.sugestoesCidade = [];
+                return;
+            }
+            if (this.carregandoMunicipios) {
+                this.avisoCidade = 'Carregando cidades do IBGE…';
+                this.sugestoesCidade = [];
+                return;
+            }
+            if (!this.municipiosUf.length) {
+                this.avisoCidade = 'Lista de cidades vazia — troque a UF e volte.';
+                this.sugestoesCidade = [];
+                return;
+            }
+
+            const hits = this.municipiosUf
+                .filter((m) => this.normalizarTexto(m.nome).startsWith(q)
+                    || this.normalizarTexto(m.nome).includes(q))
+                .slice(0, 10);
+
+            // Prefixo primeiro (gua → Guapimirim antes de coisas no meio do nome)
+            hits.sort((a, b) => {
+                const an = this.normalizarTexto(a.nome);
+                const bn = this.normalizarTexto(b.nome);
+                const ap = an.startsWith(q) ? 0 : 1;
+                const bp = bn.startsWith(q) ? 0 : 1;
+                if (ap !== bp) return ap - bp;
+                return an.localeCompare(bn);
+            });
+
+            this.sugestoesCidade = hits.slice(0, 8).map((m) => ({
+                placeId: `ibge:${m.id}`,
+                label: `${m.nome} - ${this.uf}`,
+                main: m.nome,
+                secondary: `${this.uf}, Brasil`,
+                ibge: true,
+            }));
+
+            if (!this.sugestoesCidade.length && q.length >= 2) {
+                this.avisoCidade = `Nenhuma cidade de ${this.uf} para “${texto}”.`;
+            }
+        },
+
+        extrairMunicipioDescricao(desc) {
+            const d = String(desc || '');
+            let m = d.match(/,\s*([^,]+?)\s*-\s*([A-Z]{2})\s*,\s*Brasil/i);
+            if (m) return { cidade: m[1].trim(), uf: m[2].toUpperCase() };
+            m = d.match(/^([^,]+?)\s*-\s*([A-Z]{2})\s*,\s*Brasil/i);
+            if (m) return { cidade: m[1].trim(), uf: m[2].toUpperCase() };
+            return null;
+        },
+
+        predictionNoMunicipio(pred, cidade, uf) {
+            const info = this.extrairMunicipioDescricao(pred?.description || '');
+            if (!info) return false;
+            if (info.uf !== String(uf || '').toUpperCase()) return false;
+            const a = this.normalizarTexto(info.cidade);
+            const b = this.normalizarTexto(cidade);
+            return a === b || a.includes(b) || b.includes(a);
+        },
+
+        pedirPredicoes(req) {
+            return new Promise((resolve) => {
+                if (!this.acService) {
+                    resolve([]);
+                    return;
+                }
+                this.acService.getPlacePredictions(req, (preds, status) => {
+                    if (status === google.maps.places.PlacesServiceStatus.OK && preds?.length) {
+                        resolve(preds);
+                        return;
+                    }
+                    resolve([]);
+                });
+            });
+        },
+
+        async buscarSugestoesBairro(texto) {
+            const q = String(texto || '').trim();
+            const qn = this.normalizarTexto(q);
+            const token = `${q}|${this.cidade}|${this.uf}|${Date.now()}`;
+            this._buscaBairroToken = token;
+            this.idxBairro = -1;
+            this.avisoBairro = '';
+            if (!this.uf || !this.cidade || qn.length < 2) {
+                this.sugestoesBairro = [];
+                return;
+            }
+
+            // Garante centro da cidade pro bias (prefixo curto tipo "varz")
+            if (!this.cidadeCentro) {
+                this.centralizarCidadeNoMapa(this.cidade);
+            }
+
+            const viaCep = [];
+            if (this.bairrosUrl && qn.length >= 3) {
+                try {
+                    const url = `${this.bairrosUrl}?uf=${encodeURIComponent(this.uf)}`
+                        + `&cidade=${encodeURIComponent(this.cidade)}`
+                        + `&q=${encodeURIComponent(q)}`;
+                    const res = await fetch(url, {
+                        headers: { Accept: 'application/json' },
+                        credentials: 'same-origin',
+                    });
+                    const dados = await res.json();
+                    (dados.bairros || []).forEach((nome) => {
+                        const nn = this.normalizarTexto(nome);
+                        if (!nn.startsWith(qn) && !nn.includes(qn)) return;
+                        viaCep.push({
+                            placeId: `viacep:${nn}`,
+                            label: `${nome}, ${this.cidade} - ${this.uf}`,
+                            main: nome,
+                            secondary: `${this.cidade} - ${this.uf}`,
+                            viacep: true,
+                        });
+                    });
+                } catch (e) {}
+            }
+
+            if (this._buscaBairroToken !== token) return;
+
+            let googleHits = [];
+            if (this.acService) {
+                const bias = {};
+                if (this.cidadeCentro?.lat != null && window.google?.maps?.LatLng) {
+                    bias.location = new google.maps.LatLng(this.cidadeCentro.lat, this.cidadeCentro.lng);
+                    bias.radius = 28000;
+                } else if (this.cidadeBounds) {
+                    bias.bounds = this.cidadeBounds;
+                }
+
+                // input curto + bias na cidade (não colocar o nome da cidade no input — vira "Rua Teresópolis" em outro município)
+                const predListas = await Promise.all([
+                    this.pedirPredicoes({
+                        input: q,
+                        types: ['geocode'],
+                        componentRestrictions: { country: 'br' },
+                        ...bias,
+                    }),
+                    this.pedirPredicoes({
+                        input: `Bairro ${q}`,
+                        types: ['geocode'],
+                        componentRestrictions: { country: 'br' },
+                        ...bias,
+                    }),
+                    this.pedirPredicoes({
+                        input: `${q}, ${this.cidade} - ${this.uf}`,
+                        types: ['geocode'],
+                        componentRestrictions: { country: 'br' },
+                        ...bias,
+                    }),
+                ]);
+
+                const vistoG = new Set();
+                const mesclaG = [];
+                for (const lista of predListas) {
+                    for (const p of lista || []) {
+                        if (!p?.place_id || vistoG.has(p.place_id)) continue;
+                        vistoG.add(p.place_id);
+                        mesclaG.push(p);
+                    }
+                }
+
+                googleHits = mesclaG
+                    .filter((p) => this.ehSugestaoBairro(p, qn))
+                    .map((p) => ({
+                        placeId: p.place_id,
+                        label: p.description,
+                        main: p.structured_formatting?.main_text || p.description,
+                        secondary: p.structured_formatting?.secondary_text || '',
+                        viacep: false,
+                    }));
+            }
+
+            if (this._buscaBairroToken !== token) return;
+
+            const visto = new Set();
+            const mesclado = [];
+            for (const s of [...viaCep, ...googleHits]) {
+                const key = this.normalizarTexto(s.main);
+                if (!key || visto.has(key)) continue;
+                // Prefere nomes que começam com o que digitou
+                visto.add(key);
+                mesclado.push(s);
+            }
+
+            mesclado.sort((a, b) => {
+                const an = this.normalizarTexto(a.main);
+                const bn = this.normalizarTexto(b.main);
+                const ap = an.startsWith(qn) ? 0 : 1;
+                const bp = bn.startsWith(qn) ? 0 : 1;
+                if (ap !== bp) return ap - bp;
+                return an.localeCompare(bn);
+            });
+
+            this.sugestoesBairro = mesclado.slice(0, 8);
+            if (!this.sugestoesBairro.length && qn.length >= 2) {
+                this.avisoBairro = `Nenhum bairro em ${this.cidade}/${this.uf} para “${q}” — continue um pouco.`;
+            }
+        },
+
+        ehSugestaoBairro(pred, qn) {
+            const types = pred?.types || [];
+            if (types.includes('route') || types.includes('street_address') || types.includes('establishment')) {
+                return false;
+            }
+            if (!this.predictionNoMunicipio(pred, this.cidade, this.uf)) {
+                return false;
+            }
+            const main = this.normalizarTexto(pred?.structured_formatting?.main_text || pred?.description || '');
+            if (!main) return false;
+            // "varz" casa com "varzea"
+            return main.startsWith(qn) || (qn.length >= 3 && main.includes(qn));
+        },
+
+        focarSugestao(tipo, delta) {
+            const lista = tipo === 'cidade' ? this.sugestoesCidade : this.sugestoesBairro;
+            if (!lista.length) return;
+            const key = tipo === 'cidade' ? 'idxCidade' : 'idxBairro';
+            let n = this[key] + delta;
+            if (n < 0) n = lista.length - 1;
+            if (n >= lista.length) n = 0;
+            this[key] = n;
+        },
+
+        confirmarSugestaoAtiva(tipo) {
+            if (tipo === 'cidade') {
+                const s = this.sugestoesCidade[this.idxCidade] || this.sugestoesCidade[0];
+                if (s) this.escolherSugestaoCidade(s);
+                return;
+            }
+            const s = this.sugestoesBairro[this.idxBairro] || this.sugestoesBairro[0];
+            if (s) this.escolherSugestaoBairro(s);
+        },
+
+        centralizarCidadeNoMapa(nomeCidade) {
+            if (!window.google?.maps?.Geocoder || !nomeCidade || !this.uf) return;
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode(
+                {
+                    address: `${nomeCidade}, ${this.uf}, Brasil`,
+                    componentRestrictions: { country: 'BR', administrativeArea: this.uf },
+                },
+                (results, status) => {
+                    if (status !== 'OK' || !results?.[0]?.geometry) return;
+                    this.cidadeBounds = results[0].geometry.viewport || results[0].geometry.bounds || null;
+                    const loc = results[0].geometry.location;
+                    if (loc) {
+                        this.cidadeCentro = { lat: loc.lat(), lng: loc.lng() };
+                        if (this.mapa) {
+                            this.mapa.setCenter(loc);
+                            this.mapa.setZoom(12);
+                        }
+                    }
+                },
+            );
+        },
+
+        escolherSugestaoCidade(s) {
+            this.sugestoesCidade = [];
+            this.avisoCidade = '';
+            this.idxCidade = -1;
+            this.cidade = s.main;
+            if (this.$refs.cidadeInput) this.$refs.cidadeInput.value = this.cidade;
+            this.bairro = '';
+            this.sugestoesBairro = [];
+            this.cidadeCentro = null;
+            if (this.$refs.bairroInput) this.$refs.bairroInput.value = '';
+            this.centralizarCidadeNoMapa(this.cidade);
+            this.persistirArea({ confirmada: true });
+            this.status = `Cidade: ${this.cidade}/${this.uf}. Agora o bairro.`;
+        },
+
+        escolherSugestaoBairro(s) {
+            this.sugestoesBairro = [];
+            this.avisoBairro = '';
+            this.idxBairro = -1;
+            this.bairro = s.main;
+            if (this.$refs.bairroInput) this.$refs.bairroInput.value = this.bairro;
+            this.persistirArea({ confirmada: true });
+            this.status = `Área: ${this.bairro}, ${this.cidade}/${this.uf}`;
+            if (window.google?.maps?.Geocoder && this.mapa) {
+                const geocoder = new google.maps.Geocoder();
+                geocoder.geocode(
+                    { address: `${this.bairro}, ${this.cidade}, ${this.uf}, Brasil` },
+                    (results, status) => {
+                        if (status === 'OK' && results?.[0]?.geometry?.location) {
+                            this.mapa.setCenter(results[0].geometry.location);
+                            this.mapa.setZoom(15);
+                        }
+                    },
+                );
+            }
         },
 
         toggleDesenho() {
@@ -233,7 +683,9 @@ export function registrarFluxoCampo(Alpine) {
         },
 
         async buscarLeads() {
+            if (this.buscando) return;
             this.erro = '';
+            this.buscando = true;
             this.status = 'Checando território e buscando empresas no Google Places…';
 
             try {
@@ -253,13 +705,16 @@ export function registrarFluxoCampo(Alpine) {
                     uf: uf.length === 2 ? uf : null,
                     cep: (this.cep || '').trim() || null,
                     segmento: this.segmento || setup.segmento,
+                    horas: setup.horas || null,
                     poligono: this.poligono,
                     raio_metros: Number(setup.mixProspeccao) >= 80 ? 2000 : 3500,
                 };
 
                 if (!body.bairro && !body.cidade && !body.cep && !body.poligono) {
-                    throw new Error('Informe bairro/CEP/cidade ou desenhe e feche a cerca no mapa.');
+                    throw new Error('Informe UF/cidade/bairro, CEP ou desenhe e feche a cerca no mapa.');
                 }
+
+                this.persistirArea({ confirmada: true });
 
                 const resposta = await fetch(this.prospectarUrl, {
                     method: 'POST',
@@ -281,9 +736,11 @@ export function registrarFluxoCampo(Alpine) {
                 this.selecionadosIds = this.prospectos.map((p) => p.id);
                 this.persistirSelecao();
                 localStorage.setItem('prospecta.area', JSON.stringify({
+                    uf: this.uf,
                     bairro: this.bairro,
                     cidade: this.cidade,
                     cep: this.cep,
+                    confirmada: true,
                     poligono: this.poligono,
                     centro: dados.centro,
                     territorio: dados.territorio,
@@ -363,10 +820,17 @@ export function registrarFluxoCampo(Alpine) {
                 const motivo = dados.territorio?.motivo === 'area_livre'
                     ? 'Área sem cobertura — pode prospectar.'
                     : 'Área liberada.';
-                this.status = `${motivo} ${this.prospectos.length} empresa(s). Marque quais entram na rota.`;
+                this.localResolvido = dados.local_resolvido || '';
+                this.avisos = Array.isArray(dados.avisos) ? dados.avisos : [];
+                const consulta = dados.consulta ? ` Busca Google: “${dados.consulta}”.` : '';
+                this.status = `${motivo} ${this.prospectos.length} empresa(s).${consulta} Marque quais entram na rota.`;
             } catch (e) {
                 this.erro = e.message || 'Erro ao prospectar.';
                 this.status = '';
+                this.localResolvido = '';
+                this.avisos = [];
+            } finally {
+                this.buscando = false;
             }
         },
 

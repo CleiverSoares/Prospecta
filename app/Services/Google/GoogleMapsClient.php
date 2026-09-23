@@ -10,7 +10,7 @@ use Throwable;
 class GoogleMapsClient
 {
     /**
-     * @return array{lat: float, lng: float}|null
+     * @return array{lat: float, lng: float, endereco: string}|null
      */
     public function geocodificar(string $endereco): ?array
     {
@@ -25,6 +25,7 @@ class GoogleMapsClient
         return [
             'lat' => (float) $loc['lat'],
             'lng' => (float) $loc['lng'],
+            'endereco' => (string) data_get($json, 'results.0.formatted_address', $endereco),
         ];
     }
 

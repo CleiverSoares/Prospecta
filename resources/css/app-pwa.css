@@ -6,6 +6,43 @@
         #f4f6f9;
 }
 
+/* Chip do vendedor no topo (mobile + desktop) */
+.pwa-user-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    max-width: 8.5rem;
+}
+
+.pwa-user-chip__foto,
+.pwa-user-chip__inicial {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 999px;
+    flex-shrink: 0;
+    object-fit: cover;
+}
+
+.pwa-user-chip__inicial {
+    display: grid;
+    place-items: center;
+    background: #0083c1;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.pwa-user-chip__nome {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #0f172a;
+    line-height: 1.2;
+}
+
 /* ---- Botões app ---- */
 .pwa-btn {
     display: inline-flex;
@@ -182,6 +219,48 @@
 .pwa-map {
     min-height: 16rem;
     height: min(48vh, 22rem);
+}
+
+/* Dropdown do autocomplete custom (filtrado por UF/cidade) */
+.pwa-ac-lista {
+    position: absolute;
+    z-index: 10050;
+    left: 0;
+    right: 0;
+    top: calc(100% + 2px);
+    margin: 0;
+    padding: 0.25rem 0;
+    list-style: none;
+    max-height: 14rem;
+    overflow-y: auto;
+    border-radius: 0.5rem;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+}
+
+.pwa-ac-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.35;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+}
+
+.pwa-ac-item:hover,
+.pwa-ac-item:focus,
+.pwa-ac-item.is-active {
+    background: #e8f5fc;
+    outline: none;
+}
+
+/* Esconde o pac nativo se algum script antigo ainda criar */
+.pac-container {
+    display: none !important;
 }
 
 .pwa-checkin-mapa {

@@ -10,19 +10,28 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * Unidades com nomes oficiais Alterdata (perto-de-voce) + pessoas realistas.
+ * Fonte: https://www.alterdata.com.br/sobre/perto-de-voce/regiao-sudeste
+ */
 class DemoSeeder extends Seeder
 {
     public function run(): void
     {
-        $filialRio = Unidade::query()->updateOrCreate(
-            ['nome' => 'Filial Rio'],
+        // Migra nomes antigos do seed (se existirem)
+        Unidade::query()->where('nome', 'Filial Rio')->update(['nome' => 'Filial Rio de Janeiro — Barra']);
+        Unidade::query()->where('nome', 'Representação Sul Fluminense')->update(['nome' => 'Representação Volta Redonda']);
+
+        $filialBarra = Unidade::query()->updateOrCreate(
+            ['nome' => 'Filial Rio de Janeiro — Barra'],
             [
                 'tipo' => TipoUnidade::Filial,
                 'cep_inicio' => '20000000',
                 'cep_fim' => '22799999',
-                // Contorno irregular Zona Sul / Centro (não retângulo)
+                // Contorno Zona Sul / Centro / Barra (aproximado)
                 'poligono_geojson' => [
                     'type' => 'Polygon',
                     'coordinates' => [[
@@ -43,8 +52,8 @@ class DemoSeeder extends Seeder
             ],
         );
 
-        $repSul = Unidade::query()->updateOrCreate(
-            ['nome' => 'Representação Sul Fluminense'],
+        $repVolta = Unidade::query()->updateOrCreate(
+            ['nome' => 'Representação Volta Redonda'],
             [
                 'tipo' => TipoUnidade::Representacao,
                 'cep_inicio' => '27000000',
@@ -67,14 +76,37 @@ class DemoSeeder extends Seeder
             ],
         );
 
+        Unidade::query()->updateOrCreate(
+            ['nome' => 'Unidade Cabo Frio'],
+            [
+                'tipo' => TipoUnidade::Representacao,
+                'cep_inicio' => '28900000',
+                'cep_fim' => '28999999',
+                'poligono_geojson' => [
+                    'type' => 'Polygon',
+                    'coordinates' => [[
+                        [-42.060, -22.840],
+                        [-41.980, -22.820],
+                        [-41.920, -22.860],
+                        [-41.940, -22.920],
+                        [-42.010, -22.940],
+                        [-42.070, -22.900],
+                        [-42.060, -22.840],
+                    ]],
+                ],
+            ],
+        );
+
         $adm = User::query()->updateOrCreate(
             ['email' => 'adm@prospecta.test'],
             [
-                'name' => 'Admin Prospecta',
+                'name' => 'Renata Oliveira',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
                 'unidade_id' => null,
                 'gestor_id' => null,
+                'ativo' => true,
+                'foto_path' => $this->baixarFotoUsuario('renata-oliveira', 5),
             ],
         );
         $adm->syncRoles(['adm']);
@@ -82,48 +114,53 @@ class DemoSeeder extends Seeder
         $gestor = User::query()->updateOrCreate(
             ['email' => 'gestor@prospecta.test'],
             [
-                'name' => 'Gestor Filial Rio',
+                'name' => 'Bruno Carvalho',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
-                'unidade_id' => $filialRio->id,
+                'unidade_id' => $filialBarra->id,
                 'gestor_id' => null,
+                'ativo' => true,
+                'foto_path' => $this->baixarFotoUsuario('bruno-carvalho', 33),
             ],
         );
         $gestor->syncRoles(['gestor']);
 
-        $vendedor = User::query()->updateOrCreate(
+        $vendedorBarra = User::query()->updateOrCreate(
             ['email' => 'vendedor@prospecta.test'],
             [
-                'name' => 'Vendedor Copacabana',
+                'name' => 'Camila Ferreira',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
-                'unidade_id' => $filialRio->id,
+                'unidade_id' => $filialBarra->id,
                 'gestor_id' => $gestor->id,
                 'cep_base_inicio' => '22010000',
                 'cep_base_fim' => '22080000',
-                'foto_path' => $this->gerarFotoUsuario('Vendedor Copacabana', 'copacabana'),
+                'ativo' => true,
+                'foto_path' => $this->baixarFotoUsuario('camila-ferreira', 32),
             ],
         );
-        $vendedor->syncRoles(['vendedor']);
+        $vendedorBarra->syncRoles(['vendedor']);
 
-        $vendedorLivre = User::query()->updateOrCreate(
+        $vendedorVolta = User::query()->updateOrCreate(
             ['email' => 'vendedor.livre@prospecta.test'],
             [
-                'name' => 'Vendedor Área Livre',
+                'name' => 'Diego Santos',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
-                'unidade_id' => null,
+                'unidade_id' => $repVolta->id,
                 'gestor_id' => $gestor->id,
-                'foto_path' => $this->gerarFotoUsuario('Vendedor Área Livre', 'livre'),
+                'cep_base_inicio' => '27200000',
+                'cep_base_fim' => '27399999',
+                'ativo' => true,
+                'foto_path' => $this->baixarFotoUsuario('diego-santos', 68),
             ],
         );
-        $vendedorLivre->syncRoles(['vendedor']);
+        $vendedorVolta->syncRoles(['vendedor']);
 
-        // Prospecto cliente (upsell) + lead sintético para demos offline de rota
         Prospecto::query()->updateOrCreate(
             ['cnpj' => '11222333000181'],
             [
-                'razao_social' => 'Contábil Demo Pack DP',
+                'razao_social' => 'Contábil Atlântica Pack DP',
                 'endereco' => 'Av. Atlântica, 1702 — Copacabana',
                 'telefone' => '2133334444',
                 'cep' => '22021001',
@@ -138,7 +175,7 @@ class DemoSeeder extends Seeder
         Prospecto::query()->updateOrCreate(
             ['cnpj' => '22333444000192'],
             [
-                'razao_social' => 'Escritório Vizinho Torre B',
+                'razao_social' => 'Escritório Torre B Contábil',
                 'endereco' => 'Av. Atlântica, 1702 — Copacabana',
                 'telefone' => '2133335555',
                 'cep' => '22021001',
@@ -153,8 +190,8 @@ class DemoSeeder extends Seeder
         Prospecto::query()->updateOrCreate(
             ['cnpj' => '33444555000103'],
             [
-                'razao_social' => 'Lead Volta Redonda (área bloqueada p/ Rio)',
-                'endereco' => 'Av. Paulo Erlei Alves Abrantes, 90',
+                'razao_social' => 'Metalúrgica Sul Fluminense LTDA',
+                'endereco' => 'Av. Paulo Erlei Alves Abrantes, 90 — Volta Redonda',
                 'cep' => '27253065',
                 'lat' => -22.5202,
                 'lng' => -44.0996,
@@ -163,32 +200,47 @@ class DemoSeeder extends Seeder
                 'origem' => 'DEMO',
             ],
         );
-
-        unset($repSul);
     }
 
-    private function gerarFotoUsuario(string $nome, string $slug): string
+    /**
+     * Baixa avatar (pravatar) ou gera placeholder local.
+     */
+    private function baixarFotoUsuario(string $slug, int $pravatarId): string
     {
         $path = 'usuarios/fotos/'.$slug.'.jpg';
         $full = Storage::disk('public')->path($path);
         File::ensureDirectoryExists(dirname($full));
 
+        try {
+            $resposta = Http::timeout(8)
+                ->withHeaders(['User-Agent' => 'ProspectaSeeder/1.0'])
+                ->get('https://i.pravatar.cc/256', ['img' => $pravatarId]);
+
+            if ($resposta->successful() && strlen($resposta->body()) > 500) {
+                File::put($full, $resposta->body());
+
+                return $path;
+            }
+        } catch (\Throwable) {
+            // fallback abaixo
+        }
+
+        return $this->gerarFotoFallback($slug, $path, $full);
+    }
+
+    private function gerarFotoFallback(string $slug, string $path, string $full): string
+    {
         if (function_exists('imagecreatetruecolor')) {
             $img = imagecreatetruecolor(256, 256);
-            $bg = imagecolorallocate($img, 14, 165, 233);
-            $fg = imagecolorallocate($img, 7, 16, 24);
+            $bg = imagecolorallocate($img, 0, 131, 193);
+            $fg = imagecolorallocate($img, 255, 255, 255);
             imagefilledrectangle($img, 0, 0, 256, 256, $bg);
-            $partes = preg_split('/\s+/', trim($nome)) ?: ['V'];
-            $iniciais = mb_strtoupper(
-                mb_substr($partes[0], 0, 1).(isset($partes[1]) ? mb_substr($partes[1], 0, 1) : '')
-            );
+            $iniciais = mb_strtoupper(mb_substr(str_replace('-', ' ', $slug), 0, 2));
             imagestring($img, 5, 108, 120, $iniciais, $fg);
             imagejpeg($img, $full, 88);
             imagedestroy($img);
         } else {
-            Storage::disk('public')->put($path, base64_decode(
-                '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAGfAP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAQUCf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8Bf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8Bf//Z'
-            ));
+            Storage::disk('public')->put($path, '');
         }
 
         return $path;

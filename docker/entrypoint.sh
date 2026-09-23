@@ -1,0 +1,31 @@
+#!/bin/sh
+set -e
+
+cd /var/www/html
+
+# Render / reverse proxy: Apache escuta na PORT dinâmica
+PORT="${PORT:-80}"
+sed -i "s/^Listen .*/Listen ${PORT}/" /etc/apache2/ports.conf
+sed -i "s/:80>/:${PORT}>/g" /etc/apache2/sites-available/000-default.conf
+
+mkdir -p storage/framework/{cache,sessions,views} storage/logs storage/app/public bootstrap/cache
+chown -R www-data:www-data storage bootstrap/cache || true
+chmod -R ug+rwx storage bootstrap/cache || true
+
+if [ ! -L public/storage ]; then
+  php artisan storage:link || true
+fi
+
+# Só cacheia se APP_KEY existir (senão o build de health falha cedo)
+if [ -n "${APP_KEY:-}" ]; then
+  php artisan config:cache || true
+  php artisan route:cache || true
+  php artisan view:cache || true
+fi
+
+# Migrações (Postgres/MySQL do Render). Ignore se DB ainda não estiver pronta no 1º boot.
+if [ "${RUN_MIGRATIONS:-true}" = "true" ] && [ -n "${APP_KEY:-}" ]; then
+  php artisan migrate --force || echo "migrate: falhou (verifique DB_*); subindo mesmo assim"
+fi
+
+exec apache2-foreground

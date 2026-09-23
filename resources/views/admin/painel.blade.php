@@ -50,20 +50,30 @@
             </div>
 
             <form method="GET" action="{{ route('admin.painel') }}" class="pointer-events-auto flex max-w-full flex-wrap items-center gap-1.5 rounded-2xl border border-white/55 bg-white/90 p-1.5 shadow-lg backdrop-blur-md">
-                <select name="unidade_id" class="h-9 max-w-[8.5rem] rounded-xl border-0 bg-transparent px-2 text-xs text-ink focus:ring-0">
-                    <option value="">Unidade</option>
-                    @foreach ($opcoes['unidades'] as $u)
-                        <option value="{{ $u->id }}" @selected(($filtros['unidade_id'] ?? null) == $u->id)>{{ $u->nome }}</option>
-                    @endforeach
-                </select>
-                <select name="gestor_id" class="h-9 max-w-[8rem] rounded-xl border-0 bg-transparent px-2 text-xs text-ink focus:ring-0">
-                    <option value="">Gestor</option>
-                    @foreach ($opcoes['gestores'] as $g)
-                        <option value="{{ $g->id }}" @selected(($filtros['gestor_id'] ?? null) == $g->id)>{{ $g->name }}</option>
-                    @endforeach
-                </select>
-                <select name="vendedor_id" class="h-9 max-w-[8rem] rounded-xl border-0 bg-transparent px-2 text-xs text-ink focus:ring-0">
-                    <option value="">Vendedor</option>
+                @if ($escopoGestor ?? false)
+                    <input type="hidden" name="gestor_id" value="{{ $filtros['gestor_id'] }}">
+                    @if ($filtros['unidade_id'] ?? null)
+                        <input type="hidden" name="unidade_id" value="{{ $filtros['unidade_id'] }}">
+                    @endif
+                    <span class="h-9 max-w-[11rem] truncate rounded-xl bg-surface-muted/80 px-2.5 py-2 text-xs font-medium text-ink" title="Seu escopo">
+                        {{ auth()->user()?->name }}
+                    </span>
+                @else
+                    <select name="unidade_id" class="h-9 max-w-[9.5rem] rounded-xl border-0 bg-transparent pl-2 pr-8 text-xs text-ink focus:ring-0">
+                        <option value="">Todas unidades</option>
+                        @foreach ($opcoes['unidades'] as $u)
+                            <option value="{{ $u->id }}" @selected(($filtros['unidade_id'] ?? null) == $u->id)>{{ $u->nome }}</option>
+                        @endforeach
+                    </select>
+                    <select name="gestor_id" class="h-9 max-w-[9rem] rounded-xl border-0 bg-transparent pl-2 pr-8 text-xs text-ink focus:ring-0">
+                        <option value="">Todos gestores</option>
+                        @foreach ($opcoes['gestores'] as $g)
+                            <option value="{{ $g->id }}" @selected(($filtros['gestor_id'] ?? null) == $g->id)>{{ $g->name }}</option>
+                        @endforeach
+                    </select>
+                @endif
+                <select name="vendedor_id" class="h-9 max-w-[9.5rem] rounded-xl border-0 bg-transparent pl-2 pr-8 text-xs text-ink focus:ring-0">
+                    <option value="">Todos vendedores</option>
                     @foreach ($opcoes['vendedores'] as $v)
                         <option value="{{ $v->id }}" @selected(($filtros['vendedor_id'] ?? null) == $v->id)>{{ $v->name }}</option>
                     @endforeach
@@ -79,8 +89,18 @@
                 <span><i class="admin-mapa-legend__dot" style="background:#e11d48"></i>Lead</span>
                 <span><i class="admin-mapa-legend__dot" style="background:#0083C1"></i>Cliente</span>
                 <span><i class="admin-mapa-legend__dot" style="background:#64748b"></i>Visita</span>
-                <span><i class="admin-mapa-legend__dot" style="background:#22c55e"></i>Ao vivo</span>
+                <span><i class="admin-mapa-legend__dot" style="background:#0ea5e9"></i>Trajeto</span>
+                <span class="w-full basis-full text-[0.65rem] text-ink-faint">Ao vivo (GPS do vendedor):</span>
+                <span><i class="admin-mapa-legend__dot" style="background:#22c55e"></i>Ok</span>
+                <span><i class="admin-mapa-legend__dot" style="background:#f59e0b"></i>Sem sinal</span>
+                <span><i class="admin-mapa-legend__dot" style="background:#a855f7"></i>Parado</span>
+                <span><i class="admin-mapa-legend__dot" style="background:#e11d48"></i>Fora do território</span>
             </div>
+            @if (!empty($filtros['vendedor_id']))
+                <p class="pointer-events-none rounded-xl border border-white/55 bg-white/90 px-3 py-2 text-[0.7rem] font-medium text-ink-soft shadow">
+                    Mapa filtrado: pins = check-ins · linha = caminho GPS (não a meta 8). Se a linha for curta, o seed/GPS tinha poucos pontos.
+                </p>
+            @endif
             <div class="flex flex-wrap gap-2">
                 <button type="button" class="admin-layer-toggle pointer-events-auto" :data-on="camadas.unidades ? '1' : '0'" @click="toggleCamada('unidades')">Unidades</button>
                 <button type="button" class="admin-layer-toggle pointer-events-auto" :data-on="camadas.prospectos ? '1' : '0'" @click="toggleCamada('prospectos')">Prospectos</button>
@@ -129,12 +149,12 @@
             x-show="!temSelecao"
             x-cloak
         >
-            <p class="text-xs font-semibold uppercase tracking-[0.08em] text-ink-faint">Placar do dia · meta {{ (int) config('prospecta.meta_visitas_dia', 8) }}</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.08em] text-ink-faint">Placar · feitas / meta {{ (int) config('prospecta.meta_visitas_dia', 8) }}</p>
             <ul class="mt-2.5 space-y-1.5">
                 @forelse ($placar as $i => $linha)
                     <li class="flex items-center justify-between text-sm">
                         <span class="truncate text-ink-soft"><span class="mr-1 font-semibold text-brand">{{ $i + 1 }}.</span>{{ $linha['nome'] }}</span>
-                        <span class="tabular-nums font-semibold text-ink">{{ $linha['checkins'] }}/{{ $linha['meta'] ?? config('prospecta.meta_visitas_dia', 8) }}</span>
+                        <span class="tabular-nums font-semibold text-ink">{{ $linha['checkins'] }} feitas<span class="font-normal text-ink-faint"> / {{ $linha['meta'] ?? config('prospecta.meta_visitas_dia', 8) }}</span></span>
                     </li>
                 @empty
                     <li class="text-xs leading-relaxed text-ink-faint">Sem check-ins hoje — abra o app do vendedor e faça uma visita.</li>

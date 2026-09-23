@@ -17,7 +17,7 @@
         >
         <select
             name="papel"
-            class="h-10 rounded-2xl border-0 bg-white/90 px-3 text-sm shadow-sm focus:ring-2 focus:ring-brand/25"
+            class="h-10 min-w-[11rem] rounded-2xl border-0 bg-white/90 pl-3 pr-9 text-sm shadow-sm focus:ring-2 focus:ring-brand/25"
         >
             <option value="">Todos os papéis</option>
             <option value="vendedor" @selected(($papelFiltro ?? '') === 'vendedor')>Só vendedores</option>

@@ -18,13 +18,13 @@
             placeholder="Empresa ou CNPJ"
             class="h-10 min-w-[12rem] flex-1 rounded-2xl border-0 bg-white/90 px-4 text-sm shadow-sm focus:ring-2 focus:ring-brand/25"
         >
-        <select name="status" class="h-10 rounded-2xl border-0 bg-white/90 px-3 text-sm shadow-sm focus:ring-2 focus:ring-brand/25">
+        <select name="status" class="h-10 rounded-2xl border-0 bg-white/90 pl-3 pr-9 text-sm shadow-sm focus:ring-2 focus:ring-brand/25">
             <option value="">Status</option>
             @foreach ($rotuloStatus as $valor => $label)
                 <option value="{{ $valor }}" @selected(request('status') === $valor)>{{ $label }}</option>
             @endforeach
         </select>
-        <select name="vendedor_id" class="h-10 rounded-2xl border-0 bg-white/90 px-3 text-sm shadow-sm focus:ring-2 focus:ring-brand/25">
+        <select name="vendedor_id" class="h-10 rounded-2xl border-0 bg-white/90 pl-3 pr-9 text-sm shadow-sm focus:ring-2 focus:ring-brand/25">
             <option value="">Vendedor</option>
             @foreach ($vendedores as $v)
                 <option value="{{ $v->id }}" @selected(request('vendedor_id') == $v->id)>{{ $v->name }}</option>

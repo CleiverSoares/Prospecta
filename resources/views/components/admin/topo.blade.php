@@ -92,6 +92,16 @@
                 ])
             >Papéis</a>
         @endcan
+        @can('admin.acessar')
+            <a
+                href="{{ route('admin.documentacao') }}"
+                data-ativo="{{ request()->routeIs('admin.documentacao') ? '1' : '0' }}"
+                @class([
+                    'admin-nav-link whitespace-nowrap rounded-full px-3 py-1.5 text-sm',
+                    'text-ink-soft' => ! request()->routeIs('admin.documentacao'),
+                ])
+            >Docs</a>
+        @endcan
     </nav>
     @endunless
 </header>

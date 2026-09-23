@@ -15,9 +15,12 @@ class PainelController extends Controller
 
     public function __invoke(Request $request): View
     {
-        $dados = $this->painelService->montar($request->only([
-            'unidade_id', 'gestor_id', 'vendedor_id', 'de', 'ate', 'segmento',
-        ]));
+        $dados = $this->painelService->montar(
+            $request->only([
+                'unidade_id', 'gestor_id', 'vendedor_id', 'de', 'ate', 'segmento',
+            ]),
+            $request->user(),
+        );
 
         return view('admin.painel', [
             ...$dados,

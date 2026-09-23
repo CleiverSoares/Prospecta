@@ -65,8 +65,20 @@
                 @endforeach
             </nav>
             <div class="border-t border-surface-line p-4">
-                <p class="truncate text-sm font-medium text-ink">{{ auth()->user()?->name }}</p>
-                <form method="POST" action="{{ route('logout') }}" class="mt-2">
+                <div class="flex items-center gap-3">
+                    @if (auth()->user()?->foto_url)
+                        <img src="{{ auth()->user()->foto_url }}" alt="" class="size-10 shrink-0 rounded-full object-cover ring-2 ring-brand/20">
+                    @else
+                        <span class="grid size-10 shrink-0 place-items-center rounded-full bg-brand text-sm font-bold text-white">
+                            {{ mb_strtoupper(mb_substr(auth()->user()?->name ?? 'V', 0, 1)) }}
+                        </span>
+                    @endif
+                    <div class="min-w-0 flex-1">
+                        <p class="truncate text-sm font-medium text-ink">{{ auth()->user()?->name }}</p>
+                        <p class="truncate text-xs text-ink-faint">{{ auth()->user()?->unidade?->nome ?: 'Campo' }}</p>
+                    </div>
+                </div>
+                <form method="POST" action="{{ route('logout') }}" class="mt-3">
                     @csrf
                     <button type="submit" class="text-sm font-medium text-brand hover:text-brand-strong">Sair</button>
                 </form>
@@ -74,11 +86,23 @@
         </aside>
 
         <div class="flex min-w-0 flex-1 flex-col pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] lg:pb-0">
-            <header class="sticky top-0 z-20 border-b border-surface-line bg-white/95 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-sm sm:px-6 lg:px-8">
-                <p class="text-xs font-semibold uppercase tracking-[0.14em] text-brand lg:hidden">Prospecta</p>
-                <div class="flex flex-wrap items-end justify-between gap-2">
-                    <div>
-                        <h1 class="mt-1 text-xl font-semibold tracking-tight text-ink sm:text-2xl">{{ $titulo }}</h1>
+            <header class="sticky top-0 z-20 border-b border-surface-line/80 bg-white/95 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-sm sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between gap-3">
+                    <p class="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-brand">Prospecta</p>
+                    <div class="pwa-user-chip" title="{{ auth()->user()?->name }}">
+                        @if (auth()->user()?->foto_url)
+                            <img src="{{ auth()->user()->foto_url }}" alt="" class="pwa-user-chip__foto">
+                        @else
+                            <span class="pwa-user-chip__inicial">
+                                {{ mb_strtoupper(mb_substr(auth()->user()?->name ?? 'V', 0, 1)) }}
+                            </span>
+                        @endif
+                        <span class="pwa-user-chip__nome">{{ explode(' ', trim(auth()->user()?->name ?? ''))[0] ?? '' }}</span>
+                    </div>
+                </div>
+                <div class="mt-2 flex flex-wrap items-end justify-between gap-2">
+                    <div class="min-w-0">
+                        <h1 class="text-xl font-semibold tracking-tight text-ink sm:text-2xl">{{ $titulo }}</h1>
                         @isset($subtitulo)
                             <p class="mt-0.5 text-sm text-ink-soft">{{ $subtitulo }}</p>
                         @endisset
