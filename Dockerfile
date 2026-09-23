@@ -40,7 +40,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && docker-php-ext-install -j$(nproc) \
         pdo_mysql pdo_pgsql mysqli gd zip bcmath intl opcache pcntl \
     && a2enmod rewrite headers \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && printf '%s\n' \
+        'upload_max_filesize = 12M' \
+        'post_max_size = 16M' \
+        'memory_limit = 256M' \
+        > /usr/local/etc/php/conf.d/uploads.ini
 
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 RUN sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/*.conf \

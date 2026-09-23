@@ -1465,10 +1465,71 @@ export function registrarFluxoCampo(Alpine) {
             return 2 * R * Math.asin(Math.sqrt(x));
         },
 
-        onFoto(e) {
-            this.foto = e.target.files?.[0] || null;
+        async onFoto(e) {
+            const arquivo = e.target.files?.[0] || null;
+            this.erro = '';
             if (this.fotoPreview) URL.revokeObjectURL(this.fotoPreview);
-            this.fotoPreview = this.foto ? URL.createObjectURL(this.foto) : null;
+            this.foto = null;
+            this.fotoPreview = null;
+            if (!arquivo) return;
+
+            try {
+                this.foto = await this.comprimirFotoJpeg(arquivo);
+                this.fotoPreview = URL.createObjectURL(this.foto);
+            } catch (err) {
+                this.erro = err?.message || 'Não foi possível processar a foto. Tente de novo.';
+                e.target.value = '';
+            }
+        },
+
+        /**
+         * Converte/redimensiona para JPEG — evita HEIC e fotos > limite do PHP no Render.
+         */
+        comprimirFotoJpeg(arquivo, maxLado = 1600, qualidade = 0.82) {
+            return new Promise((resolve, reject) => {
+                const url = URL.createObjectURL(arquivo);
+                const img = new Image();
+                img.onload = () => {
+                    try {
+                        let { width: w, height: h } = img;
+                        const maior = Math.max(w, h);
+                        if (maior > maxLado) {
+                            const escala = maxLado / maior;
+                            w = Math.round(w * escala);
+                            h = Math.round(h * escala);
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w;
+                        canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        if (!ctx) {
+                            reject(new Error('Não foi possível gerar a foto neste aparelho.'));
+                            return;
+                        }
+                        ctx.drawImage(img, 0, 0, w, h);
+                        canvas.toBlob(
+                            (blob) => {
+                                URL.revokeObjectURL(url);
+                                if (!blob) {
+                                    reject(new Error('Falha ao gerar JPEG da fachada.'));
+                                    return;
+                                }
+                                resolve(new File([blob], 'fachada.jpg', { type: 'image/jpeg' }));
+                            },
+                            'image/jpeg',
+                            qualidade,
+                        );
+                    } catch (err) {
+                        URL.revokeObjectURL(url);
+                        reject(err);
+                    }
+                };
+                img.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    reject(new Error('Não deu para abrir a foto. Tire de novo pela câmera.'));
+                };
+                img.src = url;
+            });
         },
 
         async toggleAudio() {
@@ -1534,8 +1595,12 @@ export function registrarFluxoCampo(Alpine) {
             fd.append('status', this.status);
             fd.append('checkin_lat', this.gps.lat);
             fd.append('checkin_lng', this.gps.lng);
-            if (this.foto) fd.append('foto', this.foto);
-            if (this.audioBlob) fd.append('audio', this.audioBlob, 'resumo.webm');
+            if (this.foto) fd.append('foto', this.foto, this.foto.name || 'fachada.jpg');
+            if (this.audioBlob) {
+                const audioTipo = this.audioBlob.type || 'audio/webm';
+                const audioExt = audioTipo.includes('mp4') ? 'm4a' : 'webm';
+                fd.append('audio', this.audioBlob, `resumo.${audioExt}`);
+            }
 
             try {
                 const resposta = await fetch(this.storeUrl, {
@@ -1546,12 +1611,15 @@ export function registrarFluxoCampo(Alpine) {
                     },
                     body: fd,
                 });
-                const dados = await resposta.json();
+                const dados = await resposta.json().catch(() => ({}));
                 if (!resposta.ok) {
+                    if (resposta.status === 413) {
+                        throw new Error('Arquivo grande demais para o servidor. Tire a foto de novo.');
+                    }
                     const msg = dados.errors
                         ? Object.values(dados.errors).flat()[0]
                         : dados.message;
-                    throw new Error(msg || 'Falha ao salvar.');
+                    throw new Error(msg || 'Falha ao salvar a visita.');
                 }
                 this.msg = 'Visita salva.';
                 this.itens = this.itens.filter((i) => i.id !== this.atual.id);

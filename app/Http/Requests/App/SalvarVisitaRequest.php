@@ -25,8 +25,18 @@ class SalvarVisitaRequest extends FormRequest
             'status' => ['required', Rule::enum(StatusVisita::class)],
             'checkin_lat' => ['required', 'numeric'],
             'checkin_lng' => ['required', 'numeric'],
-            'foto' => [$feita ? 'required' : 'nullable', 'file', 'image', 'max:8192'],
-            'audio' => [$feita ? 'required' : 'nullable', 'file', 'max:10240'],
+            'foto' => [
+                $feita ? 'required' : 'nullable',
+                'file',
+                'mimes:jpg,jpeg,png,webp,heic,heif',
+                'max:10240',
+            ],
+            'audio' => [
+                $feita ? 'required' : 'nullable',
+                'file',
+                'mimetypes:audio/webm,audio/ogg,audio/mpeg,audio/mp4,audio/wav,video/webm',
+                'max:10240',
+            ],
         ];
     }
 
@@ -39,7 +49,10 @@ class SalvarVisitaRequest extends FormRequest
             'checkin_lat.required' => 'GPS obrigatório para check-in.',
             'checkin_lng.required' => 'GPS obrigatório para check-in.',
             'foto.required' => 'Foto da fachada é obrigatória em visita feita.',
+            'foto.mimes' => 'Envie a foto como JPEG/PNG (tire de novo pela câmera do app).',
+            'foto.max' => 'Foto muito grande (máx. 10 MB). Tire de novo pela câmera.',
             'audio.required' => 'Áudio é obrigatório em visita feita.',
+            'audio.mimetypes' => 'Formato de áudio não aceito. Grave de novo no app.',
         ];
     }
 }

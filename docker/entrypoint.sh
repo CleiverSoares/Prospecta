@@ -8,7 +8,8 @@ PORT="${PORT:-80}"
 sed -i "s/^Listen .*/Listen ${PORT}/" /etc/apache2/ports.conf
 sed -i "s/:80>/:${PORT}>/g" /etc/apache2/sites-available/000-default.conf
 
-mkdir -p storage/framework/{cache,sessions,views} storage/logs storage/app/public bootstrap/cache
+mkdir -p storage/framework/{cache,sessions,views} storage/logs storage/app/public \
+  storage/app/visitas/fotos storage/app/visitas/audios bootstrap/cache
 chown -R www-data:www-data storage bootstrap/cache || true
 chmod -R ug+rwx storage bootstrap/cache || true
 
