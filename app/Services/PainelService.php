@@ -120,18 +120,25 @@ class PainelService
         $prospectosMapa = $prospectosQuery
             ->orderByDesc('id')
             ->limit(400)
-            ->get(['id', 'razao_social', 'lat', 'lng', 'is_cliente', 'cep'])
+            ->get(['id', 'razao_social', 'lat', 'lng', 'is_cliente', 'cep', 'endereco', 'cnpj', 'telefone'])
             ->map(fn (Prospecto $p) => [
                 'id' => $p->id,
                 'nome' => $p->razao_social,
                 'lat' => (float) $p->lat,
                 'lng' => (float) $p->lng,
                 'is_cliente' => (bool) $p->is_cliente,
+                'cep' => $p->cep,
+                'endereco' => $p->endereco,
+                'cnpj' => $p->cnpj,
+                'telefone' => $p->telefone,
             ])
             ->all();
 
         $visitasMapa = (clone $visitasQuery)
-            ->with('prospecto:id,razao_social,lat,lng')
+            ->with([
+                'prospecto:id,razao_social,lat,lng,endereco,cep,cnpj,is_cliente',
+                'usuario:id,name',
+            ])
             ->latest()
             ->limit(200)
             ->get()
@@ -142,6 +149,13 @@ class PainelService
                 'lat' => (float) $v->checkin_lat,
                 'lng' => (float) $v->checkin_lng,
                 'status' => $v->status?->value ?? $v->status,
+                'endereco' => $v->prospecto?->endereco,
+                'cep' => $v->prospecto?->cep,
+                'cnpj' => $v->prospecto?->cnpj,
+                'is_cliente' => (bool) ($v->prospecto?->is_cliente ?? false),
+                'vendedor' => $v->usuario?->name,
+                'quando' => $v->created_at?->timezone(config('app.timezone'))->format('d/m/Y H:i'),
+                'url' => route('admin.visitas.show', $v, absolute: false),
             ])
             ->values()
             ->all();

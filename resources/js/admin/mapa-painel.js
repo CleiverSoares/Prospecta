@@ -136,28 +136,91 @@ export function registrarMapaPainel(Alpine) {
         },
 
         popupHtml(titulo, subtitulo) {
+            return this.popupCard({ titulo, badge: subtitulo });
+        },
+
+        rotuloStatusVisita(status) {
+            const s = String(status || '').toUpperCase();
+            if (s === 'FEITA') return 'Visita feita';
+            if (s === 'RETORNO') return 'Retorno';
+            if (s === 'SEM_NINGUEM') return 'Sem ninguém';
+            return status || 'Visita';
+        },
+
+        formatarCnpj(cnpj) {
+            const d = String(cnpj || '').replace(/\D/g, '');
+            if (d.length !== 14) return cnpj || '';
+            return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+        },
+
+        popupCard({ titulo, badge, linhas = [], link = null }) {
+            const rows = (linhas || [])
+                .filter((l) => l && l.valor)
+                .map((l) => `<div class="mapa-popup-row"><em>${this.escaparHtml(l.label)}</em><span>${this.escaparHtml(l.valor)}</span></div>`)
+                .join('');
+            const footer = link
+                ? `<a class="mapa-popup-link" href="${this.escaparAttr(link)}">Abrir visita</a>`
+                : '';
             return `<div class="mapa-popup-body">
                 <strong>${this.escaparHtml(titulo || '')}</strong>
-                ${subtitulo ? `<span>${this.escaparHtml(subtitulo)}</span>` : ''}
+                ${badge ? `<span class="mapa-popup-badge">${this.escaparHtml(badge)}</span>` : ''}
+                ${rows ? `<div class="mapa-popup-rows">${rows}</div>` : ''}
+                ${footer}
             </div>`;
         },
 
-        anexarPopup(marker, html) {
-            const popup = new this.mapboxgl.Popup({
+        htmlPopupProspecto(p) {
+            const isCliente = Boolean(p.is_cliente);
+            return this.popupCard({
+                titulo: p.nome || (isCliente ? 'Cliente' : 'Lead'),
+                badge: isCliente ? 'Cliente' : 'Lead',
+                linhas: [
+                    { label: 'Endereço', valor: p.endereco },
+                    { label: 'CEP', valor: p.cep },
+                    { label: 'CNPJ', valor: this.formatarCnpj(p.cnpj) },
+                    { label: 'Telefone', valor: p.telefone },
+                ],
+            });
+        },
+
+        htmlPopupVisita(v) {
+            return this.popupCard({
+                titulo: v.nome || 'Visita',
+                badge: this.rotuloStatusVisita(v.status),
+                linhas: [
+                    { label: 'Tipo', valor: v.is_cliente ? 'Cliente' : 'Lead' },
+                    { label: 'Vendedor', valor: v.vendedor },
+                    { label: 'Quando', valor: v.quando },
+                    { label: 'Endereço', valor: v.endereco },
+                    { label: 'CEP', valor: v.cep },
+                    { label: 'CNPJ', valor: this.formatarCnpj(v.cnpj) },
+                ],
+                link: v.url || null,
+            });
+        },
+
+        abrirPopup(lngLat, html) {
+            if (!this.mapa || !this.mapboxgl || !lngLat) return;
+            if (this._popupAberto) {
+                this._popupAberto.remove();
+                this._popupAberto = null;
+            }
+            this._popupAberto = new this.mapboxgl.Popup({
                 offset: 36,
-                maxWidth: '260px',
+                maxWidth: '280px',
                 closeButton: true,
                 closeOnClick: true,
                 className: 'mapa-popup',
-            }).setHTML(html);
+            })
+                .setLngLat(lngLat)
+                .setHTML(html)
+                .addTo(this.mapa);
+        },
 
-            marker.setPopup(popup);
+        anexarPopup(marker, html) {
             marker.getElement()?.addEventListener('click', (ev) => {
                 ev.stopPropagation();
-                if (this._popupAberto && this._popupAberto !== popup) {
-                    this._popupAberto.remove();
-                }
-                this._popupAberto = popup;
+                this.abrirPopup(marker.getLngLat(), html);
             });
         },
 
@@ -493,9 +556,16 @@ export function registrarMapaPainel(Alpine) {
                 });
 
                 this.mapa.on('click', 'unidades-fill', (e) => {
+                    // Clique no pin (DOM marker) não abre popup da unidade por cima.
+                    if (e.originalEvent?.target?.closest?.('.mapboxgl-marker, .mapa-pin')) {
+                        return;
+                    }
                     const nome = e.features?.[0]?.properties?.nome;
                     if (!nome) return;
-                    new mapboxgl.Popup().setLngLat(e.lngLat).setHTML(`<strong>${nome}</strong>`).addTo(this.mapa);
+                    this.abrirPopup(e.lngLat, this.popupCard({
+                        titulo: nome,
+                        badge: 'Unidade',
+                    }));
                 });
             }
 
@@ -514,10 +584,7 @@ export function registrarMapaPainel(Alpine) {
                 })
                     .setLngLat([p.lng, p.lat])
                     .addTo(this.mapa);
-                this.anexarPopup(
-                    m,
-                    this.popupHtml(p.nome || (isCliente ? 'Cliente' : 'Lead'), isCliente ? 'Cliente' : 'Lead'),
-                );
+                this.anexarPopup(m, this.htmlPopupProspecto(p));
                 m._prospectaCliente = isCliente;
                 this.markersProspectos.push(m);
             });
@@ -532,10 +599,7 @@ export function registrarMapaPainel(Alpine) {
                 })
                     .setLngLat([v.lng, v.lat])
                     .addTo(this.mapa);
-                this.anexarPopup(
-                    m,
-                    this.popupHtml(v.nome || 'Visita', v.status || 'Visita'),
-                );
+                this.anexarPopup(m, this.htmlPopupVisita(v));
                 this.markersVisitas.push(m);
             });
 
