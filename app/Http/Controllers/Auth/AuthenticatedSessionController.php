@@ -38,7 +38,11 @@ class AuthenticatedSessionController extends Controller
                 ->withErrors(['email' => 'Seu usuário não tem permissão de acesso.']);
         }
 
-        return redirect()->intended($destino);
+        // Sem intended: se o usuário abriu /app antes do login, o Laravel
+        // guardava essa URL e mandava o adm para a PWA do vendedor.
+        $request->session()->forget('url.intended');
+
+        return redirect($destino);
     }
 
     public function destroy(Request $request): RedirectResponse

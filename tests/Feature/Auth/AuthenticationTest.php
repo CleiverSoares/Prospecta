@@ -36,6 +36,22 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect(route('admin.painel', absolute: false));
     }
 
+    public function test_adm_ignora_intended_da_pwa_e_vai_para_admin(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('adm');
+
+        $this->get('/app');
+
+        $response = $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticated();
+        $response->assertRedirect(route('admin.painel', absolute: false));
+    }
+
     public function test_vendedor_autentica_e_vai_para_app(): void
     {
         $user = User::factory()->create();
