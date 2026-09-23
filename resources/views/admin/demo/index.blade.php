@@ -16,9 +16,9 @@
         <section class="rounded-2xl border border-white/55 bg-white/90 p-5 shadow-sm sm:p-6">
             <h2 class="text-lg font-semibold text-ink">Regenerar campo</h2>
             <p class="mt-2 text-sm leading-relaxed text-ink-soft">
-                Roda o seed de massa de campo: visitas DEMO do dia + trajetos GPS com último ping recente.
-                Use quando os pins <strong class="font-medium text-ink">ao vivo</strong> sumirem do Painel
-                (janela de ~{{ config('prospecta.tracking.janela_minutos', 15) }}&nbsp;min).
+                Atualiza só o <strong class="font-medium text-ink">GPS ao vivo</strong> (trajeto + último ping recente)
+                dos vendedores demo, com base nos check-ins do dia. Rápido — não regenera fotos/visitas.
+                Use quando os pins sumirem do Painel (janela de ~{{ config('prospecta.tracking.janela_minutos', 15) }}&nbsp;min).
             </p>
 
             <form method="POST" action="{{ route('admin.demo.regenerar') }}" class="mt-5 flex flex-wrap items-center gap-3">

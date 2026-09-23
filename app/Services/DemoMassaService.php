@@ -3,14 +3,14 @@
 namespace App\Services;
 
 use App\Enums\StatusReceita;
+use App\Models\User;
 use App\Repositories\LocalizacaoRepository;
 use App\Repositories\ProspectoRepository;
 use App\Repositories\UsuarioRepository;
+use App\Repositories\VisitaRepository;
 use Database\Seeders\DemoSeeder;
-use Database\Seeders\MassaCampoSeeder;
 use Database\Seeders\PapeisEPermissoesSeeder;
 use Illuminate\Support\Facades\Artisan;
-use Throwable;
 
 class DemoMassaService
 {
@@ -26,10 +26,33 @@ class DemoMassaService
         'vendedor.livre@prospecta.test',
     ];
 
+    /** @var list<string> */
+    private const EMAILS_VENDEDORES_GPS = [
+        'vendedor@prospecta.test',
+        'vendedor.livre@prospecta.test',
+    ];
+
+    /** Fallback se não houver check-in do dia (Camila Zona Sul / Diego VR). */
+    private const FALLBACK_WAYPOINTS = [
+        'vendedor@prospecta.test' => [
+            [-22.9711, -43.1822],
+            [-22.9838, -43.2025],
+            [-22.9510, -43.1825],
+            [-22.9068, -43.1729],
+        ],
+        'vendedor.livre@prospecta.test' => [
+            [-22.5202, -44.0996],
+            [-22.5235, -44.1040],
+            [-22.5180, -44.0920],
+            [-22.5108, -44.0880],
+        ],
+    ];
+
     public function __construct(
         private readonly UsuarioRepository $usuarioRepository,
         private readonly LocalizacaoRepository $localizacaoRepository,
         private readonly ProspectoRepository $prospectoRepository,
+        private readonly VisitaRepository $visitaRepository,
     ) {}
 
     public function habilitado(): bool
@@ -38,7 +61,7 @@ class DemoMassaService
     }
 
     /**
-     * Regenera massa de campo (visitas DEMO + trajetos GPS frescos para o Painel).
+     * Refresh rápido do GPS ao vivo (sem MassaCampoSeeder — esse estoura timeout no Render).
      *
      * @return array{usuarios_demo: int, localizacoes_recentes: int, vendedores_ao_vivo: int}
      */
@@ -55,14 +78,13 @@ class DemoMassaService
             ]);
         }
 
-        try {
-            Artisan::call('db:seed', [
-                '--class' => MassaCampoSeeder::class,
-                '--force' => true,
-            ]);
-        } catch (Throwable $e) {
-            report($e);
-            throw $e;
+        $vendedores = $this->usuarioRepository->listarPorEmails(self::EMAILS_VENDEDORES_GPS);
+        $ids = $vendedores->pluck('id')->all();
+        $this->localizacaoRepository->apagarPorUsuarios($ids);
+
+        foreach ($vendedores as $vendedor) {
+            $waypoints = $this->waypointsDoVendedor($vendedor);
+            $this->localizacaoRepository->semearTrajeto($vendedor->id, $waypoints);
         }
 
         $janela = (int) config('prospecta.tracking.janela_minutos', 15);
@@ -90,11 +112,35 @@ class DemoMassaService
     }
 
     /**
+     * @return list<array{lat: float, lng: float}>
+     */
+    private function waypointsDoVendedor(User $vendedor): array
+    {
+        $checkins = $this->visitaRepository->checkinsDoDiaComCoordenada((int) $vendedor->id);
+
+        if ($checkins->count() >= 2) {
+            return $checkins
+                ->map(fn ($v) => [
+                    'lat' => (float) $v->checkin_lat,
+                    'lng' => (float) $v->checkin_lng,
+                ])
+                ->values()
+                ->all();
+        }
+
+        $fallback = self::FALLBACK_WAYPOINTS[$vendedor->email] ?? self::FALLBACK_WAYPOINTS[self::EMAIL_VENDEDOR];
+
+        return array_map(
+            fn (array $par) => ['lat' => $par[0], 'lng' => $par[1]],
+            $fallback,
+        );
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     private function clientesMock(): array
     {
-        // Espalhados pelo Brasil (não só RJ) para o Painel ler como rede nacional.
         $base = [
             ['90010011000101', 'Cliente Mock — Contábil São Paulo', -23.5505, -46.6333, '01310100', 'Av. Paulista, 1000 — São Paulo'],
             ['90010022000112', 'Cliente Mock — Clínica Campinas', -22.9099, -47.0626, '13010000', 'Av. Francisco Glicério, 800 — Campinas'],
