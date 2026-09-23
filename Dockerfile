@@ -1,5 +1,6 @@
 # Prospecta — imagem para Render (Docker)
-# Build: Vite (Node) + Composer + runtime PHP 8.3 / Apache
+# Build: Vite (Node) + Composer + runtime PHP 8.4 / Apache
+# (Laravel 13 / Symfony 8 exigem PHP >= 8.4.1)
 
 # ---------- assets (Vite) ----------
 FROM node:22-bookworm-slim AS frontend
@@ -30,7 +31,7 @@ COPY . .
 RUN composer dump-autoload --optimize --classmap-authoritative --no-dev
 
 # ---------- runtime ----------
-FROM php:8.3-apache-bookworm
+FROM php:8.4-apache-bookworm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git unzip libzip-dev libpng-dev libjpeg62-turbo-dev libfreetype6-dev \
