@@ -3,6 +3,7 @@
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -10,16 +11,24 @@ class AuthApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    private function prepararVendedor(array $attrs = []): User
+    {
+        Permission::findOrCreate('app.acessar');
+        $role = Role::findOrCreate('vendedor');
+        $role->givePermissionTo('app.acessar');
+
+        $user = User::factory()->create(array_merge(['ativo' => true], $attrs));
+        $user->assignRole('vendedor');
+
+        return $user;
+    }
+
     public function test_login_retorna_token_e_usuario(): void
     {
-        Role::findOrCreate('vendedor');
-
-        $user = User::factory()->create([
+        $this->prepararVendedor([
             'email' => 'vendedor@prospecta.test',
             'password' => 'senha-secreta',
-            'ativo' => true,
         ]);
-        $user->assignRole('vendedor');
 
         $resposta = $this->postJson('/api/auth/login', [
             'email' => 'vendedor@prospecta.test',
@@ -41,10 +50,7 @@ class AuthApiTest extends TestCase
 
     public function test_me_com_token(): void
     {
-        Role::findOrCreate('vendedor');
-        $user = User::factory()->create(['ativo' => true]);
-        $user->assignRole('vendedor');
-
+        $user = $this->prepararVendedor();
         Sanctum::actingAs($user);
 
         $this->getJson('/api/auth/me')
@@ -54,10 +60,7 @@ class AuthApiTest extends TestCase
 
     public function test_resumo_vendedor(): void
     {
-        Role::findOrCreate('vendedor');
-        $user = User::factory()->create(['ativo' => true]);
-        $user->assignRole('vendedor');
-
+        $user = $this->prepararVendedor();
         Sanctum::actingAs($user);
 
         $this->getJson('/api/vendedor/resumo')

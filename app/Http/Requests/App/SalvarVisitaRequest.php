@@ -34,7 +34,7 @@ class SalvarVisitaRequest extends FormRequest
             'audio' => [
                 $feita ? 'required' : 'nullable',
                 'file',
-                'mimetypes:audio/webm,audio/ogg,audio/mpeg,audio/mp4,audio/wav,video/webm',
+                'mimetypes:audio/webm,audio/ogg,audio/mpeg,audio/mp4,audio/wav,audio/x-m4a,audio/m4a,audio/aac,video/webm',
                 'max:10240',
             ],
         ];

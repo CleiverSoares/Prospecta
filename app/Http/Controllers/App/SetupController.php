@@ -4,29 +4,35 @@ namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\App\SalvarSetupRequest;
+use App\Services\SetupDiaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class SetupController extends Controller
 {
+    public function __construct(
+        private readonly SetupDiaService $setupDiaService,
+    ) {}
+
     public function __invoke(): View
     {
+        $setup = session('prospecta.setup');
+        if (! is_array($setup) || $setup === []) {
+            $setup = $this->setupDiaService->buscarHoje(auth()->user()) ?? [];
+            if ($setup !== []) {
+                session(['prospecta.setup' => $setup]);
+            }
+        }
+
         return view('app.setup', [
-            'setup' => session('prospecta.setup', []),
+            'setup' => $setup,
         ]);
     }
 
     public function store(SalvarSetupRequest $request): JsonResponse|RedirectResponse
     {
-        $dados = [
-            'local' => $request->validated('local'),
-            'segmento' => $request->validated('segmento'),
-            'horas' => $request->validated('horas'),
-            'mix_prospeccao' => (float) $request->validated('mix_prospeccao'),
-            'salvo_em' => now()->toIso8601String(),
-        ];
-
+        $dados = $this->setupDiaService->salvar($request->user(), $request->validated());
         $request->session()->put('prospecta.setup', $dados);
 
         if ($request->expectsJson()) {
