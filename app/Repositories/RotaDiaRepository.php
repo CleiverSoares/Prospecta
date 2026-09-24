@@ -53,6 +53,24 @@ class RotaDiaRepository
         });
     }
 
+    /**
+     * Remove o plano do dia (paradas + rota) — some da Agenda admin.
+     */
+    public function cancelarDoDia(int $userId, Carbon|string|null $data = null): bool
+    {
+        $rota = $this->buscarDoDia($userId, $data);
+        if (! $rota) {
+            return false;
+        }
+
+        return DB::transaction(function () use ($rota) {
+            ParadaPlanejada::query()->where('rota_dia_id', $rota->id)->delete();
+            $rota->delete();
+
+            return true;
+        });
+    }
+
     public function marcarParadaFeita(int $userId, int $prospectoId, int $visitaId, Carbon|string|null $data = null): ?ParadaPlanejada
     {
         $rota = $this->buscarDoDia($userId, $data);

@@ -98,4 +98,25 @@ class RotaDiaAgendaTest extends TestCase
         $this->assertSame(1, $card['feitas_plano']);
         $this->assertSame(2, $card['total_plano']);
     }
+
+    public function test_cancelar_plano_remove_da_agenda(): void
+    {
+        $vendedor = User::factory()->create(['ativo' => true]);
+        $vendedor->assignRole('vendedor');
+        $p1 = Prospecto::factory()->create(['lat' => -22.9, 'lng' => -43.1]);
+
+        $rota = app(RotaDiaService::class)->publicar($vendedor, [
+            ['id' => $p1->id, 'ordem' => 1, 'lat' => $p1->lat, 'lng' => $p1->lng],
+        ]);
+        $this->assertNotNull($rota);
+
+        $ok = app(RotaDiaService::class)->cancelarDoDia($vendedor->id);
+        $this->assertTrue($ok);
+        $this->assertNull(app(RotaDiaService::class)->buscarDoDia($vendedor->id));
+        $this->assertSame(0, ParadaPlanejada::query()->count());
+
+        $cards = app(AgendaDiaService::class)->montar(null)['cards'];
+        $card = collect($cards)->first(fn ($c) => $c['vendedor']->id === $vendedor->id);
+        $this->assertFalse($card['tem_plano'] ?? false);
+    }
 }

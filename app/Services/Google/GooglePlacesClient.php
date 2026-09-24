@@ -41,9 +41,60 @@ class GooglePlacesClient
             throw new RuntimeException('Google Places: '.$status.' — '.($resposta->json('error_message') ?? 'erro'));
         }
 
+        return $this->mapearResultadosPlaces($resposta->json('results') ?? []);
+    }
+
+    /**
+     * Text Search — melhor pra “contabilidade Meudon Teresópolis” (como o vendedor espera).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function buscarPorTexto(string $query, float $lat, float $lng, int $raioMetros = 1500): array
+    {
+        $query = trim($query);
+        if ($query === '') {
+            return [];
+        }
+
+        $chave = $this->chave();
+
+        try {
+            $resposta = Http::withoutVerifying()
+                ->timeout(15)
+                ->acceptJson()
+                ->get('https://maps.googleapis.com/maps/api/place/textsearch/json', [
+                    'query' => $query,
+                    'location' => "{$lat},{$lng}",
+                    'radius' => max(200, min(5000, $raioMetros)),
+                    'language' => 'pt-BR',
+                    'region' => 'br',
+                    'key' => $chave,
+                ]);
+        } catch (ConnectionException|Throwable $e) {
+            throw new RuntimeException('Falha ao consultar Google Places (texto): '.$e->getMessage(), 0, $e);
+        }
+
+        if (! $resposta->successful()) {
+            return [];
+        }
+
+        $status = (string) $resposta->json('status');
+        if (! in_array($status, ['OK', 'ZERO_RESULTS'], true)) {
+            return [];
+        }
+
+        return $this->mapearResultadosPlaces($resposta->json('results') ?? []);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $results
+     * @return list<array<string, mixed>>
+     */
+    private function mapearResultadosPlaces(array $results): array
+    {
         $itens = [];
 
-        foreach ($resposta->json('results') ?? [] as $lugar) {
+        foreach ($results as $lugar) {
             $placeId = $lugar['place_id'] ?? null;
             $geo = $lugar['geometry']['location'] ?? null;
 
@@ -62,12 +113,14 @@ class GooglePlacesClient
                 'types' => (array) ($lugar['types'] ?? []),
                 'lat' => (float) $geo['lat'],
                 'lng' => (float) $geo['lng'],
+                'bairro' => null,
             ], $detalhe, [
                 'place_id' => (string) $placeId,
                 'lat' => (float) ($detalhe['lat'] ?? $geo['lat']),
                 'lng' => (float) ($detalhe['lng'] ?? $geo['lng']),
                 'nome' => (string) ($detalhe['nome'] ?? $lugar['name'] ?? 'Empresa'),
-                'endereco' => (string) ($detalhe['endereco'] ?? $lugar['vicinity'] ?? ''),
+                'endereco' => (string) ($detalhe['endereco'] ?? $lugar['vicinity'] ?? $lugar['formatted_address'] ?? ''),
+                'bairro' => $detalhe['bairro'] ?? null,
             ]);
 
             if (count($itens) >= 12) {
@@ -153,10 +206,21 @@ class GooglePlacesClient
         }
 
         $cep = null;
+        $bairro = null;
         foreach ($r['address_components'] ?? [] as $comp) {
-            if (in_array('postal_code', $comp['types'] ?? [], true)) {
+            $tipos = $comp['types'] ?? [];
+            if (in_array('postal_code', $tipos, true)) {
                 $cep = preg_replace('/\D+/', '', (string) ($comp['long_name'] ?? '')) ?: null;
-                break;
+            }
+            if (
+                $bairro === null
+                && (
+                    in_array('sublocality_level_1', $tipos, true)
+                    || in_array('sublocality', $tipos, true)
+                    || in_array('neighborhood', $tipos, true)
+                )
+            ) {
+                $bairro = trim((string) ($comp['long_name'] ?? '')) ?: null;
             }
         }
 
@@ -177,6 +241,7 @@ class GooglePlacesClient
             'place_id' => (string) ($r['place_id'] ?? $placeId),
             'nome' => isset($r['name']) ? (string) $r['name'] : null,
             'endereco' => isset($r['formatted_address']) ? (string) $r['formatted_address'] : null,
+            'bairro' => $bairro,
             'telefone' => $r['formatted_phone_number'] ?? $r['international_phone_number'] ?? null,
             'telefone_internacional' => $r['international_phone_number'] ?? null,
             'website' => $r['website'] ?? null,

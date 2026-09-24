@@ -45,13 +45,31 @@ class HuntingService
         $segmento = $area['segmento'] ?? 'empresa';
         $consulta = $this->consultaPorSegmento((string) $segmento);
         $bairroFiltro = filled($area['bairro'] ?? null) ? trim((string) $area['bairro']) : null;
-        $raio = (int) ($area['raio_metros'] ?? ($bairroFiltro ? 900 : 2500));
-        $lugares = $this->googlePlacesClient->buscarNaArea(
-            $consulta,
-            $coordenadas['lat'],
-            $coordenadas['lng'],
-            $raio,
-        );
+        $cidade = trim((string) ($area['cidade'] ?? ''));
+        $uf = strtoupper(trim((string) ($area['uf'] ?? '')));
+        // PWA usa 2000–3500; com bairro fechamos mais pra não vazar pra Várzea.
+        $raio = (int) ($area['raio_metros'] ?? ($bairroFiltro ? 1200 : 2500));
+
+        $lugares = [];
+        if ($bairroFiltro !== null && $cidade !== '') {
+            // Text Search amarra segmento + bairro + cidade (como o vendedor espera no PWA)
+            $query = trim("{$consulta} {$bairroFiltro} {$cidade}".($uf !== '' ? " {$uf}" : ''));
+            $lugares = $this->googlePlacesClient->buscarPorTexto(
+                $query,
+                $coordenadas['lat'],
+                $coordenadas['lng'],
+                $raio,
+            );
+        }
+        if ($lugares === []) {
+            $keyword = $bairroFiltro ? trim($consulta.' '.$bairroFiltro) : $consulta;
+            $lugares = $this->googlePlacesClient->buscarNaArea(
+                $keyword,
+                $coordenadas['lat'],
+                $coordenadas['lng'],
+                $raio,
+            );
+        }
 
         $prospectos = [];
 
@@ -75,6 +93,7 @@ class HuntingService
             ]);
 
             $serial = $this->serializar($prospecto);
+            $serial['bairro'] = $lugar['bairro'] ?? null;
             $serial['rating'] = $lugar['rating'] ?? null;
             $serial['types'] = $lugar['types'] ?? [];
             $serial['website'] = $lugar['website'] ?? null;
@@ -91,20 +110,22 @@ class HuntingService
             $prospectos[] = $serial;
         }
 
-        if ($bairroFiltro !== null && $prospectos !== []) {
+        if ($bairroFiltro !== null) {
             $bn = $this->normalizarTexto($bairroFiltro);
-            $noBairro = array_values(array_filter(
+            $antes = count($prospectos);
+            $prospectos = array_values(array_filter(
                 $prospectos,
-                fn (array $p): bool => str_contains($this->normalizarTexto((string) ($p['endereco'] ?? '')), $bn),
+                fn (array $p): bool => $this->leadNoBairro($p, $bn),
             ));
-            if (count($noBairro) >= 1) {
-                $fora = count($prospectos) - count($noBairro);
-                $prospectos = $noBairro;
-                if ($fora > 0) {
-                    $avisos[] = "Filtramos {$fora} lead(s) fora de “{$bairroFiltro}” (endereço sem o bairro).";
+            $fora = $antes - count($prospectos);
+            if ($prospectos === []) {
+                if ($antes > 0) {
+                    $avisos[] = "Nenhum lead em “{$bairroFiltro}” — Google trouxe {$antes} de outros bairros e foram descartados.";
+                } else {
+                    $avisos[] = "Nada encontrado em “{$bairroFiltro}” ({$cidade}). Tente a cerca no mapa ou outro trecho.";
                 }
-            } else {
-                $avisos[] = "Nenhum endereço citou “{$bairroFiltro}” — mostrando os mais próximos do centro do bairro (raio {$raio} m).";
+            } elseif ($fora > 0) {
+                $avisos[] = "Filtramos {$fora} lead(s) fora de “{$bairroFiltro}”.";
             }
         }
 
@@ -165,6 +186,27 @@ class HuntingService
             ];
         }
 
+        // Pin do bairro confirmado no app (ex.: Meudon) — igual ao geocode do PWA no mapa
+        $origemBairro = ! empty($area['origem_bairro']);
+        $bairro = filled($area['bairro'] ?? null) ? trim((string) $area['bairro']) : null;
+        if (
+            $origemBairro
+            && $bairro
+            && isset($area['lat'], $area['lng'])
+            && is_numeric($area['lat'])
+            && is_numeric($area['lng'])
+            && (abs((float) $area['lat']) > 0.01 || abs((float) $area['lng']) > 0.01)
+        ) {
+            $cidade = trim((string) ($area['cidade'] ?? ''));
+            $uf = strtoupper(trim((string) ($area['uf'] ?? '')));
+
+            return [
+                'lat' => (float) $area['lat'],
+                'lng' => (float) $area['lng'],
+                'endereco' => trim($bairro.($cidade !== '' ? ", {$cidade}" : '').($uf !== '' ? " - {$uf}" : '')),
+            ];
+        }
+
         if (! empty($area['poligono']['coordinates'][0][0])) {
             $ring = $area['poligono']['coordinates'][0];
             $lat = collect($ring)->avg(fn ($p) => $p[1]);
@@ -179,10 +221,8 @@ class HuntingService
 
         $cidade = trim((string) ($area['cidade'] ?? ''));
         $uf = strtoupper(trim((string) ($area['uf'] ?? '')));
-        $bairro = filled($area['bairro'] ?? null) ? trim((string) $area['bairro']) : null;
 
-        // Bairro/cidade: SEMPRE geocode no município (não confiar em lat/lng do app —
-        // Mapbox às vezes manda o centro da cidade e o hunting cai na Várzea).
+        // Bairro/cidade: geocode no município (Google), sem cair no centro genérico.
         if ($cidade !== '' && strlen($uf) === 2) {
             $coords = app(\App\Services\Google\GoogleMapsClient::class)
                 ->geocodificarNoMunicipio($bairro, $cidade, $uf);
@@ -291,6 +331,30 @@ class HuntingService
         $base = $sem !== false ? $sem : $texto;
 
         return mb_strtolower(trim($base));
+    }
+
+    /**
+     * @param  array<string, mixed>  $lead
+     */
+    private function leadNoBairro(array $lead, string $bairroNormalizado): bool
+    {
+        $bairroLead = $this->normalizarTexto((string) ($lead['bairro'] ?? ''));
+        if ($bairroLead !== '') {
+            if (
+                $bairroLead === $bairroNormalizado
+                || str_contains($bairroLead, $bairroNormalizado)
+                || str_contains($bairroNormalizado, $bairroLead)
+            ) {
+                return true;
+            }
+            // Tem bairro explícito diferente (ex.: Várzea vs Meudon) → fora
+            return false;
+        }
+
+        return str_contains(
+            $this->normalizarTexto((string) ($lead['endereco'] ?? '')),
+            $bairroNormalizado,
+        );
     }
 
     /**

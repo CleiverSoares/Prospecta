@@ -39,37 +39,89 @@ class GoogleMapsClient
             ? "{$bairro}, {$cidade}, {$uf}, Brasil"
             : "{$cidade}, {$uf}, Brasil";
 
-        $json = $this->geocodeRequest([
-            'address' => $texto,
-            'components' => "country:BR|administrative_area:{$uf}",
-        ]);
+        $tentativas = $bairro
+            ? [
+                $texto,
+                "Bairro {$bairro}, {$cidade}, {$uf}, Brasil",
+            ]
+            : [$texto];
 
-        foreach ($json['results'] ?? [] as $resultado) {
-            if (! is_array($resultado)) {
-                continue;
-            }
-            if (! $this->resultadoNoMunicipio($resultado, $cidade, $uf)) {
-                continue;
-            }
+        foreach ($tentativas as $address) {
+            $json = $this->geocodeRequest([
+                'address' => $address,
+                'components' => "country:BR|administrative_area:{$uf}|locality:{$cidade}",
+            ]);
 
-            $loc = data_get($resultado, 'geometry.location');
-            if (! is_array($loc) || ! isset($loc['lat'], $loc['lng'])) {
-                continue;
-            }
+            foreach ($json['results'] ?? [] as $resultado) {
+                if (! is_array($resultado)) {
+                    continue;
+                }
+                if (! $this->resultadoNoMunicipio($resultado, $cidade, $uf)) {
+                    continue;
+                }
+                // Com bairro: o resultado TEM que citar o bairro (senão cai no centro / Várzea).
+                if ($bairro !== null && ! $this->resultadoMencionaBairro($resultado, $bairro)) {
+                    continue;
+                }
 
-            return [
-                'lat' => (float) $loc['lat'],
-                'lng' => (float) $loc['lng'],
-                'endereco' => (string) ($resultado['formatted_address'] ?? $texto),
-            ];
+                $loc = data_get($resultado, 'geometry.location');
+                if (! is_array($loc) || ! isset($loc['lat'], $loc['lng'])) {
+                    continue;
+                }
+
+                return [
+                    'lat' => (float) $loc['lat'],
+                    'lng' => (float) $loc['lng'],
+                    'endereco' => (string) ($resultado['formatted_address'] ?? $address),
+                ];
+            }
         }
 
-        // Fallback: centro da cidade (nunca o bairro homônimo de outra cidade).
-        if ($bairro !== null) {
-            return $this->geocodificarNoMunicipio(null, $cidade, $uf);
+        // Sem bairro: aceita centro do município. Com bairro: null (não chutar Várzea).
+        if ($bairro === null) {
+            $json = $this->geocodeRequest([
+                'address' => $texto,
+                'components' => "country:BR|administrative_area:{$uf}",
+            ]);
+
+            return $this->primeiroResultado($json, $texto);
         }
 
-        return $this->primeiroResultado($json, $texto);
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $resultado
+     */
+    private function resultadoMencionaBairro(array $resultado, string $bairro): bool
+    {
+        $bn = $this->normalizar($bairro);
+        if ($bn === '') {
+            return false;
+        }
+
+        foreach ($resultado['address_components'] ?? [] as $componente) {
+            if (! is_array($componente)) {
+                continue;
+            }
+            $tipos = $componente['types'] ?? [];
+            $relevante = array_intersect($tipos, [
+                'sublocality',
+                'sublocality_level_1',
+                'sublocality_level_2',
+                'neighborhood',
+                'political',
+            ]);
+            if ($relevante === []) {
+                continue;
+            }
+            $nome = $this->normalizar((string) ($componente['long_name'] ?? ''));
+            if ($nome === $bn || str_contains($nome, $bn) || (strlen($bn) >= 4 && str_contains($bn, $nome))) {
+                return true;
+            }
+        }
+
+        return str_contains($this->normalizar((string) ($resultado['formatted_address'] ?? '')), $bn);
     }
 
     /**
