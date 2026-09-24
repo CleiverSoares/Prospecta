@@ -222,31 +222,73 @@ class RotaService
      */
     private function ordenarGrupos(Collection $grupos, ?array $origem): Collection
     {
-        $ordenados = $grupos
-            ->sortBy([
-                fn (Collection $g) => $g->count() >= 3 ? 0 : 1,
-                fn (Collection $g) => - $g->count(),
-                function (Collection $g) use ($origem) {
-                    $lat = (float) $g->avg(fn (Prospecto $p) => $p->lat);
-                    $lng = (float) $g->avg(fn (Prospecto $p) => $p->lng);
-                    if ($origem === null) {
-                        return $lng;
-                    }
-
-                    return $this->haversineKm($origem['lat'], $origem['lng'], $lat, $lng);
-                },
-            ])
-            ->values();
-
+        // Vizinho mais próximo a partir do GPS (ou do 1º ponto).
+        // Prédios grandes NÃO pulam na frente — quem está do lado do vendedor vai primeiro.
+        $restantes = $grupos->values()->all();
         $flat = collect();
-        foreach ($ordenados as $idx => $grupo) {
-            $interno = $grupo->sortByDesc(fn (Prospecto $p) => $p->lat)->values();
-            foreach ($interno as $p) {
-                $flat->push(['prospecto' => $p, 'grupo_predio' => $idx + 1]);
+        $lat = $origem['lat'] ?? null;
+        $lng = $origem['lng'] ?? null;
+        $nGrupo = 0;
+
+        if ($lat === null || $lng === null) {
+            // Sem GPS: oeste → leste pelo centróide (estável, sem “prédio grande primeiro”)
+            usort($restantes, function (Collection $a, Collection $b): int {
+                $lngA = (float) $a->avg(fn (Prospecto $p) => $p->lng);
+                $lngB = (float) $b->avg(fn (Prospecto $p) => $p->lng);
+
+                return $lngA <=> $lngB;
+            });
+            foreach ($restantes as $grupo) {
+                $nGrupo++;
+                foreach ($grupo->sortBy(fn (Prospecto $p) => (float) $p->lat)->values() as $p) {
+                    $flat->push(['prospecto' => $p, 'grupo_predio' => $nGrupo]);
+                }
+            }
+
+            return $flat;
+        }
+
+        while ($restantes !== []) {
+            usort($restantes, function (Collection $a, Collection $b) use ($lat, $lng): int {
+                $da = $this->distanciaGrupo($a, $lat, $lng);
+                $db = $this->distanciaGrupo($b, $lat, $lng);
+                if (abs($da - $db) < 0.01) {
+                    // empate: grupo maior primeiro (ainda no mesmo quarteirão)
+                    return $b->count() <=> $a->count();
+                }
+
+                return $da <=> $db;
+            });
+
+            /** @var Collection<int, Prospecto> $grupo */
+            $grupo = array_shift($restantes);
+            $nGrupo++;
+            $pontos = $grupo->values()->all();
+
+            while ($pontos !== []) {
+                usort($pontos, function (Prospecto $a, Prospecto $b) use ($lat, $lng): int {
+                    return $this->haversineKm($lat, $lng, (float) $a->lat, (float) $a->lng)
+                        <=> $this->haversineKm($lat, $lng, (float) $b->lat, (float) $b->lng);
+                });
+                $p = array_shift($pontos);
+                $flat->push(['prospecto' => $p, 'grupo_predio' => $nGrupo]);
+                $lat = (float) $p->lat;
+                $lng = (float) $p->lng;
             }
         }
 
         return $flat;
+    }
+
+    /**
+     * @param  Collection<int, Prospecto>  $grupo
+     */
+    private function distanciaGrupo(Collection $grupo, float $lat, float $lng): float
+    {
+        $gLat = (float) $grupo->avg(fn (Prospecto $p) => $p->lat);
+        $gLng = (float) $grupo->avg(fn (Prospecto $p) => $p->lng);
+
+        return $this->haversineKm($lat, $lng, $gLat, $gLng);
     }
 
     /**
