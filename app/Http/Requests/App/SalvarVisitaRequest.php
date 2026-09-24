@@ -34,7 +34,8 @@ class SalvarVisitaRequest extends FormRequest
             'audio' => [
                 $feita ? 'required' : 'nullable',
                 'file',
-                'mimetypes:audio/webm,audio/ogg,audio/mpeg,audio/mp4,audio/wav,audio/x-m4a,audio/m4a,audio/aac,audio/x-caf,audio/caf,audio/3gpp,audio/amr,video/webm',
+                // expo-audio .m4a: finfo no PHP frequentemente devolve video/mp4 ou octet-stream
+                'mimetypes:audio/webm,audio/ogg,audio/mpeg,audio/mp4,audio/wav,audio/x-m4a,audio/m4a,audio/aac,audio/x-caf,audio/caf,audio/3gpp,audio/amr,video/webm,video/mp4,application/octet-stream,application/mp4',
                 'max:10240',
             ],
         ];
