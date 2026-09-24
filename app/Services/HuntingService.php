@@ -44,11 +44,13 @@ class HuntingService
 
         $segmento = $area['segmento'] ?? 'empresa';
         $consulta = $this->consultaPorSegmento((string) $segmento);
+        $bairroFiltro = filled($area['bairro'] ?? null) ? trim((string) $area['bairro']) : null;
+        $raio = (int) ($area['raio_metros'] ?? ($bairroFiltro ? 900 : 2500));
         $lugares = $this->googlePlacesClient->buscarNaArea(
             $consulta,
             $coordenadas['lat'],
             $coordenadas['lng'],
-            (int) ($area['raio_metros'] ?? 2500),
+            $raio,
         );
 
         $prospectos = [];
@@ -87,6 +89,23 @@ class HuntingService
             $serial['foto_thumb'] = $lugar['foto_thumb'] ?? null;
             $serial['fotos'] = $lugar['fotos'] ?? [];
             $prospectos[] = $serial;
+        }
+
+        if ($bairroFiltro !== null && $prospectos !== []) {
+            $bn = $this->normalizarTexto($bairroFiltro);
+            $noBairro = array_values(array_filter(
+                $prospectos,
+                fn (array $p): bool => str_contains($this->normalizarTexto((string) ($p['endereco'] ?? '')), $bn),
+            ));
+            if (count($noBairro) >= 1) {
+                $fora = count($prospectos) - count($noBairro);
+                $prospectos = $noBairro;
+                if ($fora > 0) {
+                    $avisos[] = "Filtramos {$fora} lead(s) fora de “{$bairroFiltro}” (endereço sem o bairro).";
+                }
+            } else {
+                $avisos[] = "Nenhum endereço citou “{$bairroFiltro}” — mostrando os mais próximos do centro do bairro (raio {$raio} m).";
+            }
         }
 
         $encontrados = count($prospectos);
@@ -264,6 +283,14 @@ class HuntingService
             'VAREJO' => 'loja varejo comércio',
             default => 'empresa comércio',
         };
+    }
+
+    private function normalizarTexto(string $texto): string
+    {
+        $sem = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $texto);
+        $base = $sem !== false ? $sem : $texto;
+
+        return mb_strtolower(trim($base));
     }
 
     /**
