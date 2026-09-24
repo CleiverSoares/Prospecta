@@ -2,9 +2,14 @@
 
 namespace App\Providers;
 
+use App\Events\VendedorForaTerritorio;
+use App\Events\VisitaConcluida;
+use App\Listeners\EnviarAvisoTelegramForaTerritorio;
+use App\Listeners\EnviarAvisoTelegramVisitaConcluida;
 use App\Contracts\ConsultaReceitaInterface;
 use App\Services\Receita\HttpConsultaReceita;
 use App\Services\Receita\MockConsultaReceita;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Vite;
@@ -24,6 +29,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Event::listen(VendedorForaTerritorio::class, EnviarAvisoTelegramForaTerritorio::class);
+        Event::listen(VisitaConcluida::class, EnviarAvisoTelegramVisitaConcluida::class);
+
         // Windows local: proxy/AV injeta certificado self-signed → cURL 60.
         if ($this->app->environment('local')) {
             Http::globalOptions([

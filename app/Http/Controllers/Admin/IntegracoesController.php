@@ -10,6 +10,16 @@ class IntegracoesController extends Controller
     public function __invoke(): View
     {
         return view('admin.integracoes', [
+            'telegram' => [
+                'habilitado' => (bool) config('prospecta.telegram.enabled'),
+                'tem_token' => filled(config('prospecta.telegram.bot_token')),
+                'tem_chat_adm' => filled(config('prospecta.telegram.chat_adm')),
+                'tem_chat_gestor' => filled(config('prospecta.telegram.chat_gestor')),
+                'avisos' => [
+                    'fora' => (bool) config('prospecta.telegram.avisos.fora_territorio'),
+                    'visita' => (bool) config('prospecta.telegram.avisos.visita_concluida'),
+                ],
+            ],
             'integracoes' => [
                 [
                     'nome' => config('prospecta.integracoes_fake.ploomes', 'Ploomes'),

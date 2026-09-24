@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\VendedorForaTerritorio;
 use App\Models\Localizacao;
 use App\Models\User;
 use App\Repositories\LocalizacaoRepository;
@@ -18,7 +19,7 @@ class LocalizacaoService
      */
     public function registrar(User $usuario, array $dados): Localizacao
     {
-        return $this->localizacaoRepository->registrar([
+        $localizacao = $this->localizacaoRepository->registrar([
             'user_id' => $usuario->id,
             'lat' => $dados['lat'],
             'lng' => $dados['lng'],
@@ -27,6 +28,21 @@ class LocalizacaoService
             'direcao' => $dados['direcao'] ?? null,
             'capturado_em' => now(),
         ]);
+
+        $usuario->loadMissing('unidade');
+        $poligono = $usuario->unidade?->poligono_geojson;
+        if (is_array($poligono) && ($poligono['type'] ?? null) === 'Polygon') {
+            $dentro = GeoHelper::pontoNoPoligono(
+                (float) $localizacao->lng,
+                (float) $localizacao->lat,
+                $poligono,
+            );
+            if (! $dentro) {
+                VendedorForaTerritorio::dispatch($usuario, $localizacao);
+            }
+        }
+
+        return $localizacao;
     }
 
     /**

@@ -97,4 +97,22 @@ return [
         ],
     ],
 
+    /*
+    | Avisos operacionais via Bot API do Telegram (adm / gestor).
+    | Chat IDs: converse com o bot e use getUpdates, ou um grupo com o bot.
+    */
+    'telegram' => [
+        'enabled' => filter_var(env('TELEGRAM_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
+        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+        'chat_adm' => env('TELEGRAM_CHAT_ADM'),
+        'chat_gestor' => env('TELEGRAM_CHAT_GESTOR'),
+        'api_base' => env('TELEGRAM_API_BASE', 'https://api.telegram.org'),
+        'timeout' => (int) env('TELEGRAM_TIMEOUT', 8),
+        'debounce_minutos' => (int) env('TELEGRAM_DEBOUNCE_MINUTOS', 30),
+        'avisos' => [
+            'fora_territorio' => filter_var(env('TELEGRAM_AVISO_FORA_TERRITORIO', true), FILTER_VALIDATE_BOOLEAN),
+            'visita_concluida' => filter_var(env('TELEGRAM_AVISO_VISITA', true), FILTER_VALIDATE_BOOLEAN),
+        ],
+    ],
+
 ];

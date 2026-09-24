@@ -6,6 +6,31 @@
         · defina <code class="text-xs">RECEITA_WS_DRIVER=http</code> + URL/token no .env para produção.
     </div>
 
+    <section class="admin-panel--soft mb-5 rounded-2xl p-5">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <p class="text-base font-semibold text-ink">Telegram</p>
+                <p class="mt-1 text-sm text-ink-soft">
+                    Avisos pra adm/gestor: fora do território (GPS) e visita feita.
+                </p>
+            </div>
+            @if ($telegram['habilitado'] && $telegram['tem_token'])
+                <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">Ligado</span>
+            @else
+                <span class="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-ink-faint">Desligado</span>
+            @endif
+        </div>
+        <ul class="mt-3 space-y-1 text-xs text-ink-soft">
+            <li>Token: {{ $telegram['tem_token'] ? 'configurado' : 'faltando TELEGRAM_BOT_TOKEN' }}</li>
+            <li>Chat adm: {{ $telegram['tem_chat_adm'] ? 'ok' : 'faltando TELEGRAM_CHAT_ADM' }}</li>
+            <li>Chat gestor: {{ $telegram['tem_chat_gestor'] ? 'ok' : 'opcional TELEGRAM_CHAT_GESTOR' }}</li>
+            <li>Avisos: {{ $telegram['avisos']['fora'] ? 'fora território' : '—' }}{{ $telegram['avisos']['visita'] ? ' · visita feita' : '' }}</li>
+        </ul>
+        <p class="mt-3 text-[11px] text-ink-faint">
+            BotFather → token · mande /start no chat · getUpdates pra pegar o chat_id · ver <code>docs/ENV.md</code>.
+        </p>
+    </section>
+
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         @foreach ($integracoes as $item)
             <div class="admin-panel--soft rounded-2xl p-5" x-data="{ aberto: false }">
