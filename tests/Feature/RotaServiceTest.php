@@ -120,6 +120,29 @@ class RotaServiceTest extends TestCase
         $this->assertNotContains($longe->id, $ids);
     }
 
+    public function test_parada_mais_proxima_do_gps_vem_primeiro(): void
+    {
+        $origem = ['lat' => -22.4120, 'lng' => -42.9660]; // Meudon / Tupinins
+        $vizinho = Prospecto::factory()->create([
+            'razao_social' => 'Vizinho Tupinins',
+            'lat' => -22.4121,
+            'lng' => -42.9661, // ~15 m
+        ]);
+        // Prédio com 3 salas bem mais longe — no algoritmo antigo ia primeiro
+        $s1 = Prospecto::factory()->create(['razao_social' => 'Sala longe 1', 'lat' => -22.4200, 'lng' => -42.9750]);
+        $s2 = Prospecto::factory()->create(['razao_social' => 'Sala longe 2', 'lat' => -22.42005, 'lng' => -42.97502]);
+        $s3 = Prospecto::factory()->create(['razao_social' => 'Sala longe 3', 'lat' => -22.4201, 'lng' => -42.97505]);
+
+        $rota = app(RotaService::class)->gerar(
+            [$s1, $s2, $s3, $vizinho],
+            $origem,
+            12,
+            ['segmento' => 'CONTABIL', 'horas' => '08:00-17:00', 'mix_prospeccao' => 70],
+        );
+
+        $this->assertSame($vizinho->id, $rota['itens'][0]['id']);
+    }
+
     public function test_blocos_manha_e_tarde_com_almoco_no_meio(): void
     {
         Carbon::setTestNow(Carbon::create(2026, 9, 17, 8, 0, 0, 'America/Sao_Paulo'));

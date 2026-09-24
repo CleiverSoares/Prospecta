@@ -238,7 +238,7 @@ Depois: **Salvar e ir para Área**.
 1. Leads marcados na Área + origem do Setup + mix/horas/segmento.
 2. Filtro de raio conforme o % de prospecção.
 3. Agrupa “prédio” (~50 m / mesmo endereço) = 1 deslocamento.
-4. Ordena: grupos grandes primeiro, depois mais perto da origem em **linha reta** (haversine); dentro do grupo por latitude.
+4. Ordena a partir do **GPS do vendedor**: grupo/parada mais perto primeiro (vizinho-mais-próximo); dentro do prédio também por proximidade. Prédios grandes não “furam fila”.
 5. Encaixa nos horários do dia (almoço + regras de segmento).
 6. Maps/Waze recebem waypoints **nessa ordem** (sem otimizar pelo Google).
 
