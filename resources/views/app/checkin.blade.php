@@ -147,7 +147,7 @@
                 </div>
             </section>
 
-            {{-- Receita colapsada --}}
+            {{-- MOCK Receita: UI desligada — RECEITA_WS_DRIVER=mock (sem chave). Reativar com DRIVER=http + token.
             <details class="rounded-2xl border border-surface-line bg-white px-4 py-3 shadow-panel">
                 <summary class="cursor-pointer text-sm font-semibold text-ink">Consultar CNPJ (Receita)</summary>
                 <div class="mt-3 space-y-2">
@@ -158,6 +158,7 @@
                     <p class="text-sm text-ink-soft" x-show="receitaMsg" x-text="receitaMsg" x-cloak></p>
                 </div>
             </details>
+            --}}
 
             <p class="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800" x-show="msg" x-text="msg" x-cloak></p>
             <p class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800" x-show="erro" x-text="erro" x-cloak></p>

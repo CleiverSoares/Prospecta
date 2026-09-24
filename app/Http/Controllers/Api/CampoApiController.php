@@ -244,6 +244,18 @@ class CampoApiController extends Controller
         ]);
     }
 
+    public function cancelarRotaHoje(Request $request): JsonResponse
+    {
+        $cancelada = $this->rotaDiaService->cancelarDoDia($request->user()->id);
+
+        return response()->json([
+            'cancelada' => $cancelada,
+            'mensagem' => $cancelada
+                ? 'Plano do dia removido da Agenda.'
+                : 'Não havia plano do dia para cancelar.',
+        ]);
+    }
+
     public function salvarVisita(SalvarVisitaRequest $request): JsonResponse
     {
         $dados = $request->validated();

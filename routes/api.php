@@ -32,6 +32,7 @@ Route::middleware(['auth:sanctum', 'permission:app.acessar'])->group(function ()
             ->middleware('permission:prospectos.ver');
 
         Route::get('/vendedor/rota/hoje', [CampoApiController::class, 'rotaHoje']);
+        Route::delete('/vendedor/rota/hoje', [CampoApiController::class, 'cancelarRotaHoje']);
 
         Route::post('/vendedor/visitas', [CampoApiController::class, 'salvarVisita'])
             ->middleware('permission:visitas.criar');

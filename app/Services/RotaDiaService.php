@@ -64,6 +64,12 @@ class RotaDiaService
         return $this->rotaDiaRepository->buscarDoDia($userId, $data);
     }
 
+    /** Cancela o plano do dia no painel (Agenda) e no aparelho. */
+    public function cancelarDoDia(int $userId, Carbon|string|null $data = null): bool
+    {
+        return $this->rotaDiaRepository->cancelarDoDia($userId, $data);
+    }
+
     /**
      * @param  list<int>  $userIds
      * @return Collection<int, RotaDia>

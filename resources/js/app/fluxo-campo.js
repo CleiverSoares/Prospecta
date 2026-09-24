@@ -1299,44 +1299,9 @@ export function registrarFluxoCampo(Alpine) {
             });
         },
 
-        async consultarReceita() {
-            if (!this.receitaUrl || !this.cnpjConsulta) {
-                this.receitaMsg = 'Informe um CNPJ.';
-                return;
-            }
-            this.consultandoReceita = true;
-            this.receitaMsg = '';
-            try {
-                const res = await fetch(this.receitaUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Accept: 'application/json',
-                        'X-CSRF-TOKEN': this.csrf,
-                    },
-                    body: JSON.stringify({
-                        cnpj: this.cnpjConsulta,
-                        prospecto_id: this.atual?.id || null,
-                    }),
-                });
-                const dados = await res.json();
-                if (!res.ok) {
-                    this.receitaMsg = dados.motivo || dados.message || dados.errors?.cnpj?.[0] || 'Consulta bloqueada/falhou.';
-                    return;
-                }
-                this.receitaMsg = `${dados.dados?.razao_social || 'OK'} · ${dados.dados?.status_receita || ''}`;
-                if (dados.prospecto && this.atual) {
-                    Object.assign(this.atual, dados.prospecto);
-                    const idx = this.itens.findIndex((i) => i.id === this.atual.id);
-                    if (idx >= 0) this.itens[idx] = { ...this.itens[idx], ...dados.prospecto };
-                    localStorage.setItem('prospecta.rota', JSON.stringify(this.itens));
-                }
-            } catch (e) {
-                this.receitaMsg = e.message || 'Erro na consulta.';
-            } finally {
-                this.consultandoReceita = false;
-            }
-        },
+        // MOCK Receita: desligado na UI (RECEITA_WS_DRIVER=mock, sem chave).
+        // Reativar com RECEITA_WS_DRIVER=http + token + bloco no checkin.blade.php.
+        // async consultarReceita() { ... fetch(this.receitaUrl) ... },
 
         aguardarMaps(cb, n = 40) {
             if (window.google?.maps) { cb(); return; }
