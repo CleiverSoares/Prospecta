@@ -26,6 +26,14 @@ class VisitaRepository
         return Visita::query()->with(['prospecto', 'usuario'])->find($id);
     }
 
+    public function contarPorUsuarioDesde(int $userId, \DateTimeInterface|string $desde): int
+    {
+        return Visita::query()
+            ->where('user_id', $userId)
+            ->where('created_at', '>=', $desde)
+            ->count();
+    }
+
     /**
      * Check-ins do dia com lat/lng (para regenerar trajeto GPS demo).
      *
