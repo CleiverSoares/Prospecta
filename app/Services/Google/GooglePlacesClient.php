@@ -216,6 +216,100 @@ class GooglePlacesClient
         return app(GoogleMapsClient::class)->geocodificar($texto);
     }
 
+    /**
+     * Sugestões de bairro no município (Places Autocomplete + bias no centro da cidade).
+     *
+     * @return list<string>
+     */
+    public function sugerirBairros(string $trecho, string $cidade, string $uf, ?float $lat = null, ?float $lng = null): array
+    {
+        $trecho = trim($trecho);
+        $cidade = trim($cidade);
+        $uf = strtoupper(trim($uf));
+
+        if (mb_strlen($trecho) < 2 || $cidade === '' || strlen($uf) !== 2) {
+            return [];
+        }
+
+        $chave = $this->chave();
+        $params = [
+            'input' => $trecho,
+            'types' => 'geocode',
+            'components' => 'country:br',
+            'language' => 'pt-BR',
+            'key' => $chave,
+        ];
+
+        if ($lat !== null && $lng !== null) {
+            $params['location'] = "{$lat},{$lng}";
+            $params['radius'] = 28000;
+        }
+
+        $nomes = [];
+
+        foreach ([$trecho, "Bairro {$trecho}", "{$trecho}, {$cidade} - {$uf}"] as $input) {
+            try {
+                $resposta = Http::withoutVerifying()
+                    ->timeout(8)
+                    ->acceptJson()
+                    ->get('https://maps.googleapis.com/maps/api/place/autocomplete/json', array_merge($params, [
+                        'input' => $input,
+                    ]));
+            } catch (ConnectionException|Throwable) {
+                continue;
+            }
+
+            if (! $resposta->successful()) {
+                continue;
+            }
+
+            foreach ($resposta->json('predictions') ?? [] as $pred) {
+                if (! is_array($pred)) {
+                    continue;
+                }
+                $desc = (string) ($pred['description'] ?? '');
+                $main = (string) ($pred['structured_formatting']['main_text'] ?? $desc);
+                $types = (array) ($pred['types'] ?? []);
+
+                if (array_intersect($types, ['route', 'street_address', 'establishment'])) {
+                    continue;
+                }
+
+                if (! $this->descricaoNoMunicipio($desc, $cidade, $uf)) {
+                    continue;
+                }
+
+                $chaveNome = mb_strtolower($this->semAcento($main));
+                if ($chaveNome === '' || isset($nomes[$chaveNome])) {
+                    continue;
+                }
+                $nomes[$chaveNome] = $main;
+            }
+        }
+
+        return array_values($nomes);
+    }
+
+    private function descricaoNoMunicipio(string $descricao, string $cidade, string $uf): bool
+    {
+        $d = $this->semAcento($descricao);
+        $c = $this->semAcento($cidade);
+        $u = strtoupper($uf);
+
+        if (! str_contains(mb_strtolower($d), mb_strtolower($c))) {
+            return false;
+        }
+
+        return (bool) preg_match('/\b'.preg_quote($u, '/').'\b/i', $descricao);
+    }
+
+    private function semAcento(string $texto): string
+    {
+        $convertido = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $texto);
+
+        return $convertido !== false ? $convertido : $texto;
+    }
+
     private function chave(): string
     {
         $chave = config('prospecta.google.places_api_key') ?: config('prospecta.google.maps_api_key');
