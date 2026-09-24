@@ -11,7 +11,8 @@
             <div>
                 <p class="text-base font-semibold text-ink">Telegram</p>
                 <p class="mt-1 text-sm text-ink-soft">
-                    Avisos pra adm/gestor: fora do território (GPS) e visita feita.
+                    Quem mandar <code class="text-xs">/start</code> no bot passa a receber avisos automaticamente.
+                    <code class="text-xs">/parar</code> cancela.
                 </p>
             </div>
             @if ($telegram['habilitado'] && $telegram['tem_token'])
@@ -21,13 +22,15 @@
             @endif
         </div>
         <ul class="mt-3 space-y-1 text-xs text-ink-soft">
+            <li>Inscritos ativos: <strong class="text-ink">{{ $telegram['inscritos'] }}</strong></li>
             <li>Token: {{ $telegram['tem_token'] ? 'configurado' : 'faltando TELEGRAM_BOT_TOKEN' }}</li>
-            <li>Chat adm: {{ $telegram['tem_chat_adm'] ? 'ok' : 'faltando TELEGRAM_CHAT_ADM' }}</li>
-            <li>Chat gestor: {{ $telegram['tem_chat_gestor'] ? 'ok' : 'opcional TELEGRAM_CHAT_GESTOR' }}</li>
+            <li>Chat adm (fallback): {{ $telegram['tem_chat_adm'] ? 'ok' : 'opcional' }}</li>
+            <li>Chat gestor (fallback): {{ $telegram['tem_chat_gestor'] ? 'ok' : 'opcional' }}</li>
             <li>Avisos: {{ $telegram['avisos']['fora'] ? 'fora território' : '—' }}{{ $telegram['avisos']['visita'] ? ' · visita feita' : '' }}</li>
         </ul>
         <p class="mt-3 text-[11px] text-ink-faint">
-            BotFather → token · mande /start no chat · getUpdates pra pegar o chat_id · ver <code>docs/ENV.md</code>.
+            Bot: <a class="text-brand font-semibold" href="https://t.me/Prospecta_avisos_bot" target="_blank" rel="noopener">t.me/Prospecta_avisos_bot</a>
+            · webhook: <code>php artisan telegram:configurar-webhook</code>
         </p>
     </section>
 

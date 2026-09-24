@@ -23,8 +23,12 @@ use App\Http\Controllers\App\RotaController;
 use App\Http\Controllers\App\RotaPageController;
 use App\Http\Controllers\App\SetupController;
 use App\Http\Controllers\App\TerritorioController;
+use App\Http\Controllers\Webhooks\TelegramWebhookController;
 use App\Services\RedirecionamentoAuthService;
 use Illuminate\Support\Facades\Route;
+
+Route::post('/webhooks/telegram/{segredo}', TelegramWebhookController::class)
+    ->name('webhooks.telegram');
 
 Route::get('/', function () {
     if (auth()->check()) {

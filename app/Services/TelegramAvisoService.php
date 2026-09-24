@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Repositories\TelegramInscritoRepository;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -9,6 +10,10 @@ use Throwable;
 
 class TelegramAvisoService
 {
+    public function __construct(
+        private readonly TelegramInscritoRepository $telegramInscritoRepository,
+    ) {}
+
     public function habilitado(): bool
     {
         return (bool) config('prospecta.telegram.enabled')
@@ -39,7 +44,23 @@ class TelegramAvisoService
         return $enviou;
     }
 
+    public function enviarDireto(string $chatId, string $texto): bool
+    {
+        if (! $this->habilitado() || $chatId === '') {
+            return false;
+        }
+
+        return $this->enviar($chatId, $texto);
+    }
+
+    public function contarInscritosAtivos(): int
+    {
+        return $this->telegramInscritoRepository->contarAtivos();
+    }
+
     /**
+     * Env chats (adm/gestor) + quem deu /start no bot.
+     *
      * @param  list<'adm'|'gestor'>  $destinos
      * @return list<string>
      */
@@ -57,7 +78,11 @@ class TelegramAvisoService
             }
         }
 
-        return array_values(array_unique($ids));
+        foreach ($this->telegramInscritoRepository->chatIdsAtivos() as $chatId) {
+            $ids[] = $chatId;
+        }
+
+        return array_values(array_unique(array_filter($ids)));
     }
 
     private function enviar(string $chatId, string $texto): bool

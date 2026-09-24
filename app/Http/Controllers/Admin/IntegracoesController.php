@@ -3,10 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\TelegramAvisoService;
 use Illuminate\View\View;
 
 class IntegracoesController extends Controller
 {
+    public function __construct(
+        private readonly TelegramAvisoService $telegramAvisoService,
+    ) {}
+
     public function __invoke(): View
     {
         return view('admin.integracoes', [
@@ -15,6 +20,7 @@ class IntegracoesController extends Controller
                 'tem_token' => filled(config('prospecta.telegram.bot_token')),
                 'tem_chat_adm' => filled(config('prospecta.telegram.chat_adm')),
                 'tem_chat_gestor' => filled(config('prospecta.telegram.chat_gestor')),
+                'inscritos' => $this->telegramAvisoService->contarInscritosAtivos(),
                 'avisos' => [
                     'fora' => (bool) config('prospecta.telegram.avisos.fora_territorio'),
                     'visita' => (bool) config('prospecta.telegram.avisos.visita_concluida'),

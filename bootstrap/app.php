@@ -19,6 +19,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // ngrok / reverse proxy: respeita X-Forwarded-Proto (HTTPS)
         $middleware->trustProxies(at: '*');
 
+        $middleware->validateCsrfTokens(except: [
+            'webhooks/telegram/*',
+        ]);
+
         $middleware->alias([
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,

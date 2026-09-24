@@ -106,6 +106,7 @@ return [
         'bot_token' => env('TELEGRAM_BOT_TOKEN'),
         'chat_adm' => env('TELEGRAM_CHAT_ADM'),
         'chat_gestor' => env('TELEGRAM_CHAT_GESTOR'),
+        'webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET'),
         'api_base' => env('TELEGRAM_API_BASE', 'https://api.telegram.org'),
         'timeout' => (int) env('TELEGRAM_TIMEOUT', 8),
         'debounce_minutos' => (int) env('TELEGRAM_DEBOUNCE_MINUTOS', 30),

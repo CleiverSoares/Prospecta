@@ -29,4 +29,9 @@ if [ "${RUN_MIGRATIONS:-true}" = "true" ] && [ -n "${APP_KEY:-}" ]; then
   php artisan migrate --force || echo "migrate: falhou (verifique DB_*); subindo mesmo assim"
 fi
 
+# Telegram: registra webhook HTTPS se estiver ligado
+if [ "${TELEGRAM_ENABLED:-false}" = "true" ] && [ -n "${TELEGRAM_WEBHOOK_SECRET:-}" ] && [ -n "${TELEGRAM_BOT_TOKEN:-}" ]; then
+  php artisan telegram:configurar-webhook || echo "telegram webhook: falhou (confira APP_URL https)"
+fi
+
 exec apache2-foreground
