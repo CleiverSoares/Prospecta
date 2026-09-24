@@ -135,7 +135,10 @@ class HuntingService
      */
     private function resolverCoordenadas(array $area): array
     {
-        if (isset($area['lat'], $area['lng']) && is_numeric($area['lat']) && is_numeric($area['lng'])) {
+        // GPS explícito do vendedor (botão “Prospectar no meu GPS”)
+        $origemGps = ! empty($area['origem_gps']);
+
+        if ($origemGps && isset($area['lat'], $area['lng']) && is_numeric($area['lat']) && is_numeric($area['lng'])) {
             return [
                 'lat' => (float) $area['lat'],
                 'lng' => (float) $area['lng'],
@@ -159,6 +162,8 @@ class HuntingService
         $uf = strtoupper(trim((string) ($area['uf'] ?? '')));
         $bairro = filled($area['bairro'] ?? null) ? trim((string) $area['bairro']) : null;
 
+        // Bairro/cidade: SEMPRE geocode no município (não confiar em lat/lng do app —
+        // Mapbox às vezes manda o centro da cidade e o hunting cai na Várzea).
         if ($cidade !== '' && strlen($uf) === 2) {
             $coords = app(\App\Services\Google\GoogleMapsClient::class)
                 ->geocodificarNoMunicipio($bairro, $cidade, $uf);
@@ -166,6 +171,14 @@ class HuntingService
             if ($coords !== null) {
                 return $coords;
             }
+        }
+
+        if (isset($area['lat'], $area['lng']) && is_numeric($area['lat']) && is_numeric($area['lng'])) {
+            return [
+                'lat' => (float) $area['lat'],
+                'lng' => (float) $area['lng'],
+                'endereco' => 'Ponto '.number_format((float) $area['lat'], 4).', '.number_format((float) $area['lng'], 4),
+            ];
         }
 
         $partes = array_filter([
