@@ -36,6 +36,7 @@ class ProspectarAreaRequest extends FormRequest
             'segmento' => ['nullable', 'string', 'max:40'],
             'lat' => ['nullable', 'numeric'],
             'lng' => ['nullable', 'numeric'],
+            'origem_gps' => ['nullable', 'boolean'],
             'raio_metros' => ['nullable', 'integer', 'min:200', 'max:5000'],
             'horas' => ['nullable', 'string', 'max:40'],
             'poligono' => ['nullable', 'array'],
