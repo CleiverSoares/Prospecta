@@ -47,7 +47,16 @@ class AuthApiService
     }
 
     /**
-     * @return array{id: int, name: string, email: string, roles: list<string>}
+     * @return array{
+     *   id: int,
+     *   name: string,
+     *   email: string,
+     *   roles: list<string>,
+     *   origem_lat: float|null,
+     *   origem_lng: float|null,
+     *   origem_rotulo: string|null,
+     *   unidade_id: int|null
+     * }
      */
     public function serializarUsuario(User $usuario): array
     {
@@ -56,6 +65,10 @@ class AuthApiService
             'name' => $usuario->name,
             'email' => $usuario->email,
             'roles' => $usuario->getRoleNames()->values()->all(),
+            'origem_lat' => $usuario->origem_lat,
+            'origem_lng' => $usuario->origem_lng,
+            'origem_rotulo' => $usuario->origem_rotulo,
+            'unidade_id' => $usuario->unidade_id,
         ];
     }
 }

@@ -2,18 +2,31 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\SetupDiaService;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureSetupDiario
 {
+    public function __construct(
+        private readonly SetupDiaService $setupDiaService,
+    ) {}
+
     /**
      * @param  Closure(Request): Response  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
         $setup = $request->session()->get('prospecta.setup');
+
+        if (! $this->completo($setup) && $request->user()) {
+            $doBanco = $this->setupDiaService->buscarHoje($request->user());
+            if ($doBanco) {
+                $request->session()->put('prospecta.setup', $doBanco);
+                $setup = $doBanco;
+            }
+        }
 
         if ($this->completo($setup)) {
             return $next($request);
