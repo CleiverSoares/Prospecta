@@ -155,10 +155,23 @@ class HuntingService
             ];
         }
 
+        $cidade = trim((string) ($area['cidade'] ?? ''));
+        $uf = strtoupper(trim((string) ($area['uf'] ?? '')));
+        $bairro = filled($area['bairro'] ?? null) ? trim((string) $area['bairro']) : null;
+
+        if ($cidade !== '' && strlen($uf) === 2) {
+            $coords = app(\App\Services\Google\GoogleMapsClient::class)
+                ->geocodificarNoMunicipio($bairro, $cidade, $uf);
+
+            if ($coords !== null) {
+                return $coords;
+            }
+        }
+
         $partes = array_filter([
-            $area['bairro'] ?? null,
-            $area['cidade'] ?? null,
-            $area['uf'] ?? null,
+            $bairro,
+            $cidade !== '' ? $cidade : null,
+            strlen($uf) === 2 ? $uf : null,
             ! empty($area['cep']) ? 'CEP '.$area['cep'] : null,
             'Brasil',
         ]);

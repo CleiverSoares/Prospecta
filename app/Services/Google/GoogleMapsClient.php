@@ -16,6 +16,68 @@ class GoogleMapsClient
     {
         $json = $this->geocodeRequest(['address' => $endereco]);
 
+        return $this->primeiroResultado($json, $endereco);
+    }
+
+    /**
+     * Geocodifica bairro/cidade amarrado ao município — evita “Tijuca” cair no Rio
+     * quando o usuário pediu Teresópolis.
+     *
+     * @return array{lat: float, lng: float, endereco: string}|null
+     */
+    public function geocodificarNoMunicipio(?string $bairro, string $cidade, string $uf): ?array
+    {
+        $uf = strtoupper(trim($uf));
+        $cidade = trim($cidade);
+        $bairro = filled($bairro) ? trim((string) $bairro) : null;
+
+        if ($cidade === '' || strlen($uf) !== 2) {
+            return null;
+        }
+
+        $texto = $bairro
+            ? "{$bairro}, {$cidade}, {$uf}, Brasil"
+            : "{$cidade}, {$uf}, Brasil";
+
+        $json = $this->geocodeRequest([
+            'address' => $texto,
+            'components' => "country:BR|administrative_area:{$uf}",
+        ]);
+
+        foreach ($json['results'] ?? [] as $resultado) {
+            if (! is_array($resultado)) {
+                continue;
+            }
+            if (! $this->resultadoNoMunicipio($resultado, $cidade, $uf)) {
+                continue;
+            }
+
+            $loc = data_get($resultado, 'geometry.location');
+            if (! is_array($loc) || ! isset($loc['lat'], $loc['lng'])) {
+                continue;
+            }
+
+            return [
+                'lat' => (float) $loc['lat'],
+                'lng' => (float) $loc['lng'],
+                'endereco' => (string) ($resultado['formatted_address'] ?? $texto),
+            ];
+        }
+
+        // Fallback: centro da cidade (nunca o bairro homônimo de outra cidade).
+        if ($bairro !== null) {
+            return $this->geocodificarNoMunicipio(null, $cidade, $uf);
+        }
+
+        return $this->primeiroResultado($json, $texto);
+    }
+
+    /**
+     * @param  array<string, mixed>  $json
+     * @return array{lat: float, lng: float, endereco: string}|null
+     */
+    private function primeiroResultado(array $json, string $fallbackEndereco): ?array
+    {
         $loc = data_get($json, 'results.0.geometry.location');
 
         if (! is_array($loc) || ! isset($loc['lat'], $loc['lng'])) {
@@ -25,8 +87,54 @@ class GoogleMapsClient
         return [
             'lat' => (float) $loc['lat'],
             'lng' => (float) $loc['lng'],
-            'endereco' => (string) data_get($json, 'results.0.formatted_address', $endereco),
+            'endereco' => (string) data_get($json, 'results.0.formatted_address', $fallbackEndereco),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $resultado
+     */
+    private function resultadoNoMunicipio(array $resultado, string $cidade, string $uf): bool
+    {
+        $cidadeN = $this->normalizar($cidade);
+        $ufN = strtoupper($uf);
+        $localidade = null;
+        $estado = null;
+
+        foreach ($resultado['address_components'] ?? [] as $componente) {
+            if (! is_array($componente)) {
+                continue;
+            }
+            $tipos = $componente['types'] ?? [];
+            if (in_array('locality', $tipos, true) || in_array('administrative_area_level_2', $tipos, true)) {
+                $localidade = (string) ($componente['long_name'] ?? '');
+            }
+            if (in_array('administrative_area_level_1', $tipos, true)) {
+                $estado = (string) ($componente['short_name'] ?? $componente['long_name'] ?? '');
+            }
+        }
+
+        if ($estado !== null && strtoupper($estado) !== $ufN && $this->normalizar($estado) !== $this->normalizar($ufN)) {
+            return false;
+        }
+
+        if ($localidade !== null) {
+            $locN = $this->normalizar($localidade);
+
+            return $locN === $cidadeN || str_contains($locN, $cidadeN) || str_contains($cidadeN, $locN);
+        }
+
+        $formatado = $this->normalizar((string) ($resultado['formatted_address'] ?? ''));
+
+        return str_contains($formatado, $cidadeN) && str_contains($formatado, $this->normalizar($ufN));
+    }
+
+    private function normalizar(string $texto): string
+    {
+        $sem = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $texto);
+        $base = $sem !== false ? $sem : $texto;
+
+        return mb_strtolower(trim($base));
     }
 
     /**

@@ -90,13 +90,56 @@ class CampoApiController extends Controller
         $uf = strtoupper((string) $request->query('uf', ''));
         $cidade = trim((string) $request->query('cidade', ''));
         $q = trim((string) $request->query('q', ''));
+        $lat = $request->query('lat');
+        $lng = $request->query('lng');
 
-        if (strlen($uf) !== 2 || $cidade === '' || mb_strlen($q) < 3) {
+        if (strlen($uf) !== 2 || $cidade === '' || mb_strlen($q) < 2) {
             return response()->json(['bairros' => []]);
         }
 
+        $viaCep = $this->viaCepService->sugerirBairros($uf, $cidade, $q);
+        $google = [];
+
+        try {
+            $google = $this->googlePlacesClient->sugerirBairros(
+                $q,
+                $cidade,
+                $uf,
+                is_numeric($lat) ? (float) $lat : null,
+                is_numeric($lng) ? (float) $lng : null,
+            );
+        } catch (Throwable) {
+            $google = [];
+        }
+
+        $visto = [];
+        $mesclado = [];
+        $qn = mb_strtolower($q);
+
+        foreach ([...$viaCep, ...$google] as $nome) {
+            $nome = trim((string) $nome);
+            if ($nome === '') {
+                continue;
+            }
+            $key = mb_strtolower($nome);
+            if (isset($visto[$key])) {
+                continue;
+            }
+            $visto[$key] = true;
+            $mesclado[] = $nome;
+        }
+
+        usort($mesclado, function (string $a, string $b) use ($qn): int {
+            $an = mb_strtolower($a);
+            $bn = mb_strtolower($b);
+            $ap = str_starts_with($an, $qn) ? 0 : 1;
+            $bp = str_starts_with($bn, $qn) ? 0 : 1;
+
+            return $ap === $bp ? strcmp($an, $bn) : $ap <=> $bp;
+        });
+
         return response()->json([
-            'bairros' => $this->viaCepService->sugerirBairros($uf, $cidade, $q),
+            'bairros' => array_slice($mesclado, 0, 8),
         ]);
     }
 
